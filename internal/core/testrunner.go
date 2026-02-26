@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 type TestResults struct {
@@ -22,7 +21,6 @@ type CoverageEntry struct {
 }
 
 func MapTest(projectDir string, bddFile string, testFile string) error {
-	// Parse feature tag from BDD file
 	bddPath := filepath.Join(projectDir, bddFile)
 	data, err := os.ReadFile(bddPath)
 	if err != nil {
@@ -41,7 +39,12 @@ func MapTest(projectDir string, bddFile string, testFile string) error {
 		return fmt.Errorf("err:validation no @feature tag in %s", bddFile)
 	}
 
-	// Load state
+	// Verify test file exists
+	testPath := filepath.Join(projectDir, testFile)
+	if _, err := os.Stat(testPath); os.IsNotExist(err) {
+		return fmt.Errorf("err:validation test file %s not found", testFile)
+	}
+
 	state, err := LoadState(projectDir)
 	if err != nil {
 		return err
@@ -55,11 +58,17 @@ func MapTest(projectDir string, bddFile string, testFile string) error {
 		}
 	}
 
-	// Store mapping as test entry
 	mapping := bddFile + "::" + testFile
+
+	// Check for duplicate
 	var testsList []string
 	if fs.Tests != nil {
 		if existing, ok := fs.Tests.([]string); ok {
+			for _, t := range existing {
+				if t == mapping {
+					return nil // already mapped
+				}
+			}
 			testsList = existing
 		}
 	}
@@ -67,23 +76,23 @@ func MapTest(projectDir string, bddFile string, testFile string) error {
 	fs.Tests = testsList
 	state.Features[featureID] = fs
 
-	// Write state with test mappings
-	return writeStateWithTests(projectDir, state)
+	return writeState(projectDir, state)
 }
 
 func CheckTestCoverage(projectDir string) ([]CoverageEntry, error) {
 	bddDir := filepath.Join(projectDir, ".ptsd", "bdd")
-	entries, _ := os.ReadDir(bddDir)
+	entries, err := os.ReadDir(bddDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("err:io %w", err)
+	}
 
 	state, err := LoadState(projectDir)
 	if err != nil {
 		return nil, err
 	}
-
-	// Read test mappings from state.yaml raw content
-	statePath := filepath.Join(projectDir, ".ptsd", "state.yaml")
-	stateData, _ := os.ReadFile(statePath)
-	stateContent := string(stateData)
 
 	var coverage []CoverageEntry
 
@@ -112,31 +121,11 @@ func CheckTestCoverage(projectDir string) ([]CoverageEntry, error) {
 			continue
 		}
 
-		// Count test mappings for this feature
+		// Count test mappings from state
 		testCount := 0
-		_ = state // use raw content instead
-		inFeature := false
-		inTests := false
-		for _, line := range strings.Split(stateContent, "\n") {
-			trimmed := strings.TrimSpace(line)
-			indent := len(line) - len(strings.TrimLeft(line, " "))
-
-			if indent == 2 && strings.HasSuffix(trimmed, ":") {
-				name := strings.TrimSuffix(trimmed, ":")
-				inFeature = name == featureID
-				inTests = false
-				continue
-			}
-			if inFeature && indent == 4 && (trimmed == "tests:" || strings.HasPrefix(trimmed, "tests:")) {
-				inTests = true
-				continue
-			}
-			if inFeature && inTests && indent == 6 && strings.HasPrefix(trimmed, "- ") {
-				testCount++
-				continue
-			}
-			if inFeature && indent <= 4 && trimmed != "" && !strings.HasPrefix(trimmed, "- ") {
-				inTests = false
+		if fs, ok := state.Features[featureID]; ok {
+			if tests, ok := fs.Tests.([]string); ok {
+				testCount = len(tests)
 			}
 		}
 
@@ -163,18 +152,49 @@ func RunTests(projectDir string, featureFilter string) (TestResults, error) {
 		return TestResults{}, fmt.Errorf("err:config no test runner configured")
 	}
 
-	// Execute test runner
 	cmd := exec.Command("sh", "-c", cfg.Testing.Runner)
 	cmd.Dir = projectDir
-	output, _ := cmd.CombinedOutput()
+	output, err := cmd.CombinedOutput()
 
-	// Parse TAP format
-	results := parseTAPOutput(string(output))
+	// Parse results based on adapter selection
+	var results TestResults
+	if cfg.Testing.ResultParser.Format != "" {
+		// Generic configurable adapter
+		results = parseTAPOutput(string(output))
+	} else if containsKnownRunner(cfg.Testing.Runner) {
+		// Known runner preset
+		results = parseTAPOutput(string(output))
+	} else {
+		// Exit-code adapter: pass if exit 0
+		if err == nil {
+			results = TestResults{Total: 1, Passed: 1}
+		} else {
+			results = TestResults{Total: 1, Failed: 1}
+			if len(output) > 0 {
+				results.Failures = []string{strings.TrimSpace(string(output))}
+			}
+		}
+	}
+
+	// Override with TAP parse if we got TAP-like output
+	if strings.Contains(string(output), "ok ") || strings.Contains(string(output), "not ok ") {
+		results = parseTAPOutput(string(output))
+	}
 
 	// Update state with results
 	updateStateWithResults(projectDir, featureFilter, results)
 
 	return results, nil
+}
+
+func containsKnownRunner(runner string) bool {
+	known := []string{"vitest", "jest", "pytest", "go test"}
+	for _, k := range known {
+		if strings.Contains(runner, k) {
+			return true
+		}
+	}
+	return false
 }
 
 func parseTAPOutput(output string) TestResults {
@@ -196,84 +216,33 @@ func parseTAPOutput(output string) TestResults {
 }
 
 func updateStateWithResults(projectDir string, featureFilter string, results TestResults) {
-	statePath := filepath.Join(projectDir, ".ptsd", "state.yaml")
-	data, err := os.ReadFile(statePath)
+	state, err := LoadState(projectDir)
 	if err != nil {
 		return
 	}
 
-	content := string(data)
-	resultLine := fmt.Sprintf("    passed: %d\n    failed: %d\n", results.Passed, results.Failed)
+	resultStr := fmt.Sprintf("passed:%d failed:%d", results.Passed, results.Failed)
 
 	if featureFilter != "" {
-		// Find the feature section and append results
-		lines := strings.Split(content, "\n")
-		var newLines []string
-		inFeature := false
-		added := false
-		for _, line := range lines {
-			trimmed := strings.TrimSpace(line)
-			indent := len(line) - len(strings.TrimLeft(line, " "))
-
-			if indent == 2 && strings.HasSuffix(trimmed, ":") {
-				if inFeature && !added {
-					newLines = append(newLines, resultLine)
-					added = true
-				}
-				name := strings.TrimSuffix(trimmed, ":")
-				inFeature = name == featureFilter
+		fs, ok := state.Features[featureFilter]
+		if !ok {
+			fs = FeatureState{
+				Hashes: make(map[string]string),
+				Scores: make(map[string]ScoreEntry),
 			}
-			newLines = append(newLines, line)
 		}
-		if inFeature && !added {
-			newLines = append(newLines, resultLine)
+		// Store test results as a special hash entry for now
+		if fs.Hashes == nil {
+			fs.Hashes = make(map[string]string)
 		}
-		content = strings.Join(newLines, "\n")
-	} else {
-		// Append results at the end
-		content += resultLine
+		fs.Hashes["test_results"] = resultStr
+		if results.Failed == 0 && results.Total > 0 {
+			fs.Hashes["test_status"] = "passing"
+		} else {
+			fs.Hashes["test_status"] = "failing"
+		}
+		state.Features[featureFilter] = fs
 	}
 
-	os.WriteFile(statePath, []byte(content), 0644)
-}
-
-func writeStateWithTests(projectDir string, state *State) error {
-	statePath := filepath.Join(projectDir, ".ptsd", "state.yaml")
-
-	var b strings.Builder
-	b.WriteString("features:\n")
-
-	for featureID, fs := range state.Features {
-		b.WriteString("  " + featureID + ":\n")
-		if fs.Stage != "" {
-			b.WriteString("    stage: " + fs.Stage + "\n")
-		}
-
-		if len(fs.Hashes) > 0 {
-			b.WriteString("    hashes:\n")
-			for k, v := range fs.Hashes {
-				b.WriteString("      " + k + ": " + v + "\n")
-			}
-		}
-
-		if len(fs.Scores) > 0 {
-			b.WriteString("    scores:\n")
-			for stage, entry := range fs.Scores {
-				b.WriteString("      " + stage + ":\n")
-				b.WriteString(fmt.Sprintf("        score: %d\n", entry.Value))
-				b.WriteString("        at: \"" + entry.Timestamp.Format(time.RFC3339Nano) + "\"\n")
-			}
-		}
-
-		if fs.Tests != nil {
-			if tests, ok := fs.Tests.([]string); ok && len(tests) > 0 {
-				b.WriteString("    tests:\n")
-				for _, t := range tests {
-					b.WriteString("      - " + t + "\n")
-				}
-			}
-		}
-	}
-
-	return os.WriteFile(statePath, []byte(b.String()), 0644)
+	writeState(projectDir, state)
 }

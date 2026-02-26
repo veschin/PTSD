@@ -85,12 +85,39 @@ func findConfigPath(dir string) (string, error) {
 	return "", fmt.Errorf("err:config: not found")
 }
 
+func stripQuotes(s string) string {
+	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
+		return s[1 : len(s)-1]
+	}
+	return s
+}
+
+func parseInlineArray(value string) []string {
+	value = strings.TrimSpace(value)
+	if strings.HasPrefix(value, "[") && strings.HasSuffix(value, "]") {
+		inner := value[1 : len(value)-1]
+		var result []string
+		for _, item := range strings.Split(inner, ",") {
+			item = strings.TrimSpace(item)
+			item = stripQuotes(item)
+			if item != "" {
+				result = append(result, item)
+			}
+		}
+		return result
+	}
+	return nil
+}
+
 func parseConfig(content string) (*Config, error) {
-	cfg := &Config{}
+	cfg := &Config{
+		Hooks: HooksConfig{PreCommit: true},
+	}
 
 	lines := strings.Split(content, "\n")
 	var currentSection string
 	var currentSubSection string
+	preCommitExplicit := false
 
 	for i, line := range lines {
 		line = strings.TrimRight(line, " ")
@@ -117,6 +144,7 @@ func parseConfig(content string) (*Config, error) {
 			}
 			key := strings.TrimSpace(parts[0])
 			value := strings.TrimSpace(parts[1])
+			value = stripQuotes(value)
 
 			if currentSection == "project" {
 				if key == "name" {
@@ -124,7 +152,11 @@ func parseConfig(content string) (*Config, error) {
 				}
 			} else if currentSection == "testing" {
 				if currentSubSection == "patterns" && key == "files" {
-					cfg.Testing.Patterns.Files = parseArray(lines, i)
+					if inline := parseInlineArray(parts[1]); inline != nil {
+						cfg.Testing.Patterns.Files = inline
+					} else {
+						cfg.Testing.Patterns.Files = parseArray(lines, i)
+					}
 				} else if currentSubSection == "result_parser" {
 					switch key {
 					case "format":
@@ -144,7 +176,11 @@ func parseConfig(content string) (*Config, error) {
 			} else if currentSection == "review" {
 				switch key {
 				case "min_score":
-					cfg.Review.MinScore, _ = strconv.Atoi(value)
+					n, err := strconv.Atoi(value)
+					if err != nil {
+						return nil, fmt.Errorf("err:config invalid min_score: %s", value)
+					}
+					cfg.Review.MinScore = n
 				case "auto_redo":
 					cfg.Review.AutoRedo = value == "true"
 				}
@@ -152,15 +188,25 @@ func parseConfig(content string) (*Config, error) {
 				switch key {
 				case "pre_commit":
 					cfg.Hooks.PreCommit = value == "true"
+					preCommitExplicit = true
 				case "scopes":
-					cfg.Hooks.Scopes = parseArray(lines, i)
+					if inline := parseInlineArray(parts[1]); inline != nil {
+						cfg.Hooks.Scopes = inline
+					} else {
+						cfg.Hooks.Scopes = parseArray(lines, i)
+					}
 				case "types":
-					cfg.Hooks.Types = parseArray(lines, i)
+					if inline := parseInlineArray(parts[1]); inline != nil {
+						cfg.Hooks.Types = inline
+					} else {
+						cfg.Hooks.Types = parseArray(lines, i)
+					}
 				}
 			}
 		}
 	}
 
+	_ = preCommitExplicit
 	return cfg, nil
 }
 
@@ -168,13 +214,13 @@ func parseArray(lines []string, startIdx int) []string {
 	var result []string
 	indent := "    - "
 
-	for i := startIdx; i < len(lines); i++ {
+	for i := startIdx + 1; i < len(lines); i++ {
 		line := lines[i]
 		if strings.HasPrefix(line, indent) {
 			val := strings.TrimPrefix(line, indent)
-			result = append(result, strings.TrimSpace(val))
-		} else if strings.HasPrefix(line, "  ") && !strings.HasPrefix(line, "    ") {
-			break
+			val = strings.TrimSpace(val)
+			val = stripQuotes(val)
+			result = append(result, val)
 		} else if line == "" {
 			continue
 		} else {
@@ -192,5 +238,4 @@ func applyDefaults(cfg *Config) {
 	if cfg.Review.MinScore == 0 {
 		cfg.Review.MinScore = 7
 	}
-	cfg.Hooks.PreCommit = true
 }

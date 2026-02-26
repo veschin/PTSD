@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -22,7 +23,20 @@ type FeatureDetail struct {
 	TestCount     int
 }
 
+var validFeatureID = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
+
+var validStatuses = map[string]bool{
+	"planned":     true,
+	"in-progress": true,
+	"implemented": true,
+	"deferred":    true,
+}
+
 func AddFeature(projectDir string, id string, title string) error {
+	if !validFeatureID.MatchString(id) {
+		return fmt.Errorf("err:validation invalid feature ID %q: must be ASCII slug (a-z0-9 with hyphens)", id)
+	}
+
 	features, err := loadFeatures(projectDir)
 	if err != nil {
 		return err
@@ -79,7 +93,6 @@ func ShowFeature(projectDir string, id string) (FeatureDetail, error) {
 		Status: found.Status,
 	}
 
-	// Seed status
 	seedDir := filepath.Join(projectDir, ".ptsd", "seeds", id)
 	if info, err := os.Stat(seedDir); err == nil && info.IsDir() {
 		detail.SeedStatus = "ok"
@@ -87,7 +100,6 @@ func ShowFeature(projectDir string, id string) (FeatureDetail, error) {
 		detail.SeedStatus = "missing"
 	}
 
-	// BDD scenario count
 	bddFile := filepath.Join(projectDir, ".ptsd", "bdd", id+".feature")
 	if data, err := os.ReadFile(bddFile); err == nil {
 		for _, line := range strings.Split(string(data), "\n") {
@@ -97,10 +109,8 @@ func ShowFeature(projectDir string, id string) (FeatureDetail, error) {
 		}
 	}
 
-	// Test count from state.yaml
 	detail.TestCount = readTestCount(projectDir, id)
 
-	// PRD anchor
 	prdPath := filepath.Join(projectDir, ".ptsd", "docs", "PRD.md")
 	if data, err := os.ReadFile(prdPath); err == nil {
 		anchor := "<!-- feature:" + id + " -->"
@@ -116,6 +126,10 @@ func ShowFeature(projectDir string, id string) (FeatureDetail, error) {
 }
 
 func UpdateFeatureStatus(projectDir string, id string, newStatus string) error {
+	if !validStatuses[newStatus] {
+		return fmt.Errorf("err:validation invalid status %q: must be planned|in-progress|implemented|deferred", newStatus)
+	}
+
 	features, err := loadFeatures(projectDir)
 	if err != nil {
 		return err
@@ -154,11 +168,18 @@ func RemoveFeature(projectDir string, id string) error {
 		return err
 	}
 
+	found := false
 	var filtered []Feature
 	for _, f := range features {
-		if f.ID != id {
+		if f.ID == id {
+			found = true
+		} else {
 			filtered = append(filtered, f)
 		}
+	}
+
+	if !found {
+		return fmt.Errorf("err:validation feature %s not found", id)
 	}
 
 	return saveFeatures(projectDir, filtered)
@@ -177,7 +198,6 @@ func loadFeatures(projectDir string) ([]Feature, error) {
 		trimmed := strings.TrimSpace(lines[i])
 		if strings.HasPrefix(trimmed, "- id: ") {
 			f := Feature{ID: strings.TrimPrefix(trimmed, "- id: ")}
-			// Read subsequent indented fields
 			for j := i + 1; j < len(lines); j++ {
 				next := strings.TrimSpace(lines[j])
 				if strings.HasPrefix(next, "- id: ") || next == "" {
@@ -185,7 +205,6 @@ func loadFeatures(projectDir string) ([]Feature, error) {
 				}
 				if strings.HasPrefix(next, "title: ") {
 					f.Title = strings.TrimPrefix(next, "title: ")
-					// Remove surrounding quotes
 					f.Title = strings.Trim(f.Title, "\"")
 				}
 				if strings.HasPrefix(next, "status: ") {
@@ -207,8 +226,8 @@ func saveFeatures(projectDir string, features []Feature) error {
 	for _, f := range features {
 		b.WriteString("  - id: " + f.ID + "\n")
 		title := f.Title
-		if strings.Contains(title, " ") {
-			title = "\"" + title + "\""
+		if strings.ContainsAny(title, " :\"'#") {
+			title = "\"" + strings.ReplaceAll(title, "\"", "\\\"") + "\""
 		}
 		b.WriteString("    title: " + title + "\n")
 		b.WriteString("    status: " + f.Status + "\n")

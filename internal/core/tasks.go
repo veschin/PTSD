@@ -17,9 +17,25 @@ type Task struct {
 	Priority string
 }
 
+var validTaskStatuses = map[string]bool{
+	"TODO": true,
+	"WIP":  true,
+	"DONE": true,
+}
+
+var validTaskPriorities = map[string]bool{
+	"A": true,
+	"B": true,
+	"C": true,
+}
+
 func AddTask(projectDir string, featureID string, title string, priority string) (Task, error) {
 	if featureID == "" {
 		return Task{}, fmt.Errorf("err:user --feature required")
+	}
+
+	if !validTaskPriorities[priority] {
+		return Task{}, fmt.Errorf("err:validation invalid priority %q: must be A|B|C", priority)
 	}
 
 	features, err := loadFeatures(projectDir)
@@ -90,6 +106,10 @@ func ListTasks(projectDir string, featureFilter string, statusFilter string) ([]
 }
 
 func UpdateTask(projectDir string, id string, status string) error {
+	if !validTaskStatuses[status] {
+		return fmt.Errorf("err:validation invalid status %q: must be TODO|WIP|DONE", status)
+	}
+
 	tasks, err := loadTasks(projectDir)
 	if err != nil {
 		return err
@@ -183,7 +203,11 @@ func saveTasks(projectDir string, tasks []Task) error {
 	for _, t := range tasks {
 		b.WriteString("  - id: " + t.ID + "\n")
 		b.WriteString("    feature: " + t.Feature + "\n")
-		b.WriteString("    title: " + t.Title + "\n")
+		title := t.Title
+		if strings.ContainsAny(title, ":\"'#") {
+			title = "\"" + strings.ReplaceAll(title, "\"", "\\\"") + "\""
+		}
+		b.WriteString("    title: " + title + "\n")
 		b.WriteString("    status: " + t.Status + "\n")
 		b.WriteString("    priority: " + t.Priority + "\n")
 	}

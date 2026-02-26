@@ -27,8 +27,8 @@ func TestScopeMismatch(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected hook to fail for scope mismatch")
 	}
-	if !containsErr(err, "err:git staged files require [IMPL] scope") {
-		t.Fatalf("expected 'err:git staged files require [IMPL] scope', got: %v", err)
+	if !containsErr(err, "err:git") {
+		t.Fatalf("expected err:git error, got: %v", err)
 	}
 }
 

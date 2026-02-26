@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -31,6 +32,7 @@ type RegressionWarning struct {
 	Feature  string
 	File     string
 	FileType string
+	Severity string // "error" or "warn"
 	Category string
 	Message  string
 }
@@ -53,7 +55,7 @@ func parseState(content string) (*State, error) {
 	lines := strings.Split(content, "\n")
 
 	var currentFeature string
-	var currentSection string // "hashes", "scores", "tests"
+	var currentSection string
 	var currentScoreStage string
 
 	for i := 0; i < len(lines); i++ {
@@ -66,7 +68,6 @@ func parseState(content string) (*State, error) {
 
 		indent := len(line) - len(strings.TrimLeft(line, " "))
 
-		// Feature name (2 spaces indent, ends with ":")
 		if indent == 2 && strings.HasSuffix(trimmed, ":") && !strings.Contains(trimmed, " ") {
 			currentFeature = strings.TrimSuffix(trimmed, ":")
 			if _, ok := state.Features[currentFeature]; !ok {
@@ -84,7 +85,6 @@ func parseState(content string) (*State, error) {
 			continue
 		}
 
-		// Section headers (4 spaces indent)
 		if indent == 4 {
 			if strings.HasPrefix(trimmed, "stage: ") {
 				fs := state.Features[currentFeature]
@@ -102,19 +102,13 @@ func parseState(content string) (*State, error) {
 			}
 			if trimmed == "tests:" || strings.HasPrefix(trimmed, "tests:") {
 				currentSection = "tests"
-				// Parse inline tests list
-				if strings.HasPrefix(trimmed, "tests:") && !strings.HasSuffix(trimmed, ":") {
-					// Nothing to do for simple value
-				}
 				continue
 			}
 			if strings.Contains(trimmed, ": ") {
-				// Other top-level feature fields like "passed: 5", "failed: 1"
 				continue
 			}
 		}
 
-		// Hash entries (6 spaces indent)
 		if indent == 6 && currentSection == "hashes" && strings.Contains(trimmed, ": ") {
 			parts := strings.SplitN(trimmed, ": ", 2)
 			if len(parts) == 2 {
@@ -125,13 +119,11 @@ func parseState(content string) (*State, error) {
 			continue
 		}
 
-		// Score stage (6 spaces indent under scores)
 		if indent == 6 && currentSection == "scores" && strings.HasSuffix(trimmed, ":") {
 			currentScoreStage = strings.TrimSuffix(trimmed, ":")
 			continue
 		}
 
-		// Score values (8 spaces indent)
 		if indent == 8 && currentSection == "scores" && currentScoreStage != "" {
 			if strings.HasPrefix(trimmed, "score: ") {
 				val, _ := strconv.Atoi(strings.TrimPrefix(trimmed, "score: "))
@@ -156,9 +148,18 @@ func parseState(content string) (*State, error) {
 			continue
 		}
 
-		// Tests list entries (6 spaces indent, "- " prefix)
 		if indent == 6 && currentSection == "tests" && strings.HasPrefix(trimmed, "- ") {
-			// Tests as list items — store as-is for now
+			val := strings.TrimPrefix(trimmed, "- ")
+			fs := state.Features[currentFeature]
+			var testsList []string
+			if fs.Tests != nil {
+				if existing, ok := fs.Tests.([]string); ok {
+					testsList = existing
+				}
+			}
+			testsList = append(testsList, val)
+			fs.Tests = testsList
+			state.Features[currentFeature] = fs
 			continue
 		}
 	}
@@ -186,25 +187,21 @@ func SyncState(projectDir string) error {
 			}
 		}
 
-		// Hash seed
 		seedPath := filepath.Join(projectDir, ".ptsd", "seeds", f.ID, "seed.yaml")
 		if h, err := computeFileHash(seedPath); err == nil {
 			fs.Hashes["seed"] = h
 		}
 
-		// Hash BDD
 		bddPath := filepath.Join(projectDir, ".ptsd", "bdd", f.ID+".feature")
 		if h, err := computeFileHash(bddPath); err == nil {
 			fs.Hashes["bdd"] = h
 		}
 
-		// Hash test
 		testPath := filepath.Join(projectDir, "internal", "core", f.ID+"_test.go")
 		if h, err := computeFileHash(testPath); err == nil {
 			fs.Hashes["test"] = h
 		}
 
-		// Hash PRD
 		prdPath := filepath.Join(projectDir, ".ptsd", "docs", "PRD.md")
 		if h, err := computeFileHash(prdPath); err == nil {
 			fs.Hashes["prd"] = h
@@ -261,31 +258,56 @@ func CheckRegressions(projectDir string) ([]RegressionWarning, error) {
 				continue
 			}
 
-			// File changed
 			if c.stageIdx < currentStageIdx {
-				// Change in a file from an earlier stage — regression
-				warnings = append(warnings, RegressionWarning{
-					Feature:  featureID,
-					File:     c.path,
-					FileType: c.fileType,
-					Category: "regression",
-					Message:  fmt.Sprintf("%s changed at stage %s, downstream may be stale", c.fileType, fs.Stage),
-				})
-
-				// Downgrade stage
-				fs.Stage = c.fileType
-				fs.Hashes[c.key] = newHash
-				state.Features[featureID] = fs
-				currentStageIdx = c.stageIdx
+				if c.fileType == "prd" {
+					// PRD change = ERROR: downgrade stage, create redo task
+					warnings = append(warnings, RegressionWarning{
+						Feature:  featureID,
+						File:     c.path,
+						FileType: c.fileType,
+						Severity: "error",
+						Category: "regression",
+						Message:  fmt.Sprintf("%s changed at stage %s, stage downgraded", c.fileType, fs.Stage),
+					})
+					fs.Stage = c.fileType
+					fs.Hashes[c.key] = newHash
+					state.Features[featureID] = fs
+					currentStageIdx = c.stageIdx
+				} else if c.fileType == "test" && fs.Stage == "implemented" {
+					// Test change at implemented = WARN, re-run tests, no downgrade
+					warnings = append(warnings, RegressionWarning{
+						Feature:  featureID,
+						File:     c.path,
+						FileType: c.fileType,
+						Severity: "warn",
+						Category: "regression",
+						Message:  fmt.Sprintf("test changed at stage %s, re-run tests", fs.Stage),
+					})
+					fs.Hashes[c.key] = newHash
+					state.Features[featureID] = fs
+				} else {
+					// Seed/BDD change = WARN, downstream may be stale, no downgrade
+					warnings = append(warnings, RegressionWarning{
+						Feature:  featureID,
+						File:     c.path,
+						FileType: c.fileType,
+						Severity: "warn",
+						Category: "regression",
+						Message:  fmt.Sprintf("%s changed at stage %s, downstream may be stale", c.fileType, fs.Stage),
+					})
+					fs.Hashes[c.key] = newHash
+					state.Features[featureID] = fs
+				}
 			} else {
-				// Change at current stage — expected, update hash
 				fs.Hashes[c.key] = newHash
 				state.Features[featureID] = fs
 			}
 		}
 	}
 
-	writeState(projectDir, state)
+	if err := writeState(projectDir, state); err != nil {
+		return warnings, fmt.Errorf("err:io failed to persist state: %w", err)
+	}
 
 	return warnings, nil
 }
@@ -296,20 +318,48 @@ func writeState(projectDir string, state *State) error {
 	var b strings.Builder
 	b.WriteString("features:\n")
 
-	for featureID, fs := range state.Features {
+	// Sort feature keys for deterministic output
+	keys := make([]string, 0, len(state.Features))
+	for k := range state.Features {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, featureID := range keys {
+		fs := state.Features[featureID]
 		b.WriteString("  " + featureID + ":\n")
 		b.WriteString("    stage: " + fs.Stage + "\n")
 
 		b.WriteString("    hashes:\n")
-		for k, v := range fs.Hashes {
-			b.WriteString("      " + k + ": " + v + "\n")
+		hkeys := make([]string, 0, len(fs.Hashes))
+		for k := range fs.Hashes {
+			hkeys = append(hkeys, k)
+		}
+		sort.Strings(hkeys)
+		for _, k := range hkeys {
+			b.WriteString("      " + k + ": " + fs.Hashes[k] + "\n")
 		}
 
 		b.WriteString("    scores:\n")
-		for stage, entry := range fs.Scores {
+		skeys := make([]string, 0, len(fs.Scores))
+		for k := range fs.Scores {
+			skeys = append(skeys, k)
+		}
+		sort.Strings(skeys)
+		for _, stage := range skeys {
+			entry := fs.Scores[stage]
 			b.WriteString("      " + stage + ":\n")
 			b.WriteString("        score: " + strconv.Itoa(entry.Value) + "\n")
 			b.WriteString("        at: \"" + entry.Timestamp.Format(time.RFC3339Nano) + "\"\n")
+		}
+
+		if fs.Tests != nil {
+			if tests, ok := fs.Tests.([]string); ok && len(tests) > 0 {
+				b.WriteString("    tests:\n")
+				for _, t := range tests {
+					b.WriteString("      - " + t + "\n")
+				}
+			}
 		}
 	}
 

@@ -78,9 +78,10 @@ func TestBDDChangeForImplementedFeature(t *testing.T) {
 		t.Error("expected bdd regression for user-auth")
 	}
 
+	// BDD change = WARN only per PRD, no stage downgrade
 	state, _ := LoadState(dir)
-	if state.Features["user-auth"].Stage != "bdd" {
-		t.Errorf("stage should be downgraded to bdd, got %s", state.Features["user-auth"].Stage)
+	if state.Features["user-auth"].Stage != "implemented" {
+		t.Errorf("stage should remain implemented for bdd warn, got %s", state.Features["user-auth"].Stage)
 	}
 }
 

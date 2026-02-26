@@ -8,6 +8,12 @@ import (
 	"strings"
 )
 
+var validSeedTypes = map[string]bool{
+	"data":    true,
+	"fixture": true,
+	"schema":  true,
+}
+
 func InitSeed(projectDir string, featureID string) error {
 	features, err := loadFeatures(projectDir)
 	if err != nil {
@@ -26,12 +32,17 @@ func InitSeed(projectDir string, featureID string) error {
 	}
 
 	seedDir := filepath.Join(projectDir, ".ptsd", "seeds", featureID)
+	seedPath := filepath.Join(seedDir, "seed.yaml")
+
+	if _, err := os.Stat(seedPath); err == nil {
+		return fmt.Errorf("err:validation seed already initialized for %s", featureID)
+	}
+
 	if err := os.MkdirAll(seedDir, 0755); err != nil {
 		return fmt.Errorf("err:io %w", err)
 	}
 
 	seedYAML := "feature: " + featureID + "\nfiles:\n"
-	seedPath := filepath.Join(seedDir, "seed.yaml")
 	if err := os.WriteFile(seedPath, []byte(seedYAML), 0644); err != nil {
 		return fmt.Errorf("err:io %w", err)
 	}
@@ -39,7 +50,11 @@ func InitSeed(projectDir string, featureID string) error {
 	return nil
 }
 
-func AddSeedFile(projectDir string, featureID string, filePath string, fileType string) error {
+func AddSeedFile(projectDir string, featureID string, filePath string, fileType string, description string) error {
+	if !validSeedTypes[fileType] {
+		return fmt.Errorf("err:validation invalid seed type %q: must be data|fixture|schema", fileType)
+	}
+
 	seedDir := filepath.Join(projectDir, ".ptsd", "seeds", featureID)
 	seedYAMLPath := filepath.Join(seedDir, "seed.yaml")
 
@@ -48,6 +63,16 @@ func AddSeedFile(projectDir string, featureID string, filePath string, fileType 
 	}
 
 	basename := filepath.Base(filePath)
+
+	// Check for duplicate entry
+	data, err := os.ReadFile(seedYAMLPath)
+	if err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+	if strings.Contains(string(data), "path: "+basename) {
+		return fmt.Errorf("err:validation file %s already in seed manifest for %s", basename, featureID)
+	}
+
 	dstPath := filepath.Join(seedDir, basename)
 
 	src, err := os.Open(filePath)
@@ -60,19 +85,20 @@ func AddSeedFile(projectDir string, featureID string, filePath string, fileType 
 	if err != nil {
 		return fmt.Errorf("err:io %w", err)
 	}
-	defer dst.Close()
 
 	if _, err := io.Copy(dst, src); err != nil {
+		dst.Close()
 		return fmt.Errorf("err:io %w", err)
 	}
-
-	data, err := os.ReadFile(seedYAMLPath)
-	if err != nil {
+	if err := dst.Close(); err != nil {
 		return fmt.Errorf("err:io %w", err)
 	}
 
 	content := string(data)
 	entry := "  - path: " + basename + "\n    type: " + fileType + "\n"
+	if description != "" {
+		entry += "    description: \"" + description + "\"\n"
+	}
 	content += entry
 
 	if err := os.WriteFile(seedYAMLPath, []byte(content), 0644); err != nil {

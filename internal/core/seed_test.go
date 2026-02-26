@@ -52,7 +52,7 @@ func TestAddSeedFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err := AddSeedFile(dir, "user-auth", srcFile, "data")
+	err := AddSeedFile(dir, "user-auth", srcFile, "data", "test user data")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

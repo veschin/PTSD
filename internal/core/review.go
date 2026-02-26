@@ -2,13 +2,26 @@ package core
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 	"time"
 )
 
+var validReviewStages = map[string]bool{
+	"prd":  true,
+	"seed": true,
+	"bdd":  true,
+	"test": true,
+	"impl": true,
+}
+
 func RecordReview(projectDir string, featureID string, stage string, score int) error {
+	if score < 0 || score > 10 {
+		return fmt.Errorf("err:user score must be 0-10, got %d", score)
+	}
+
+	if !validReviewStages[stage] {
+		return fmt.Errorf("err:user invalid stage %q: must be prd|seed|bdd|test|impl", stage)
+	}
+
 	state, err := LoadState(projectDir)
 	if err != nil {
 		return err
@@ -38,15 +51,16 @@ func RecordReview(projectDir string, featureID string, stage string, score int) 
 	// Auto-redo check
 	cfg, err := LoadConfig(projectDir)
 	if err != nil {
-		return nil // config not required for review recording
+		return nil
 	}
 
 	if cfg.Review.AutoRedo && score < cfg.Review.MinScore {
 		title := fmt.Sprintf("redo %s for %s", stage, featureID)
 		tasks, _ := loadTasks(projectDir)
+
 		maxNum := 0
 		for _, t := range tasks {
-			if strings.HasPrefix(t.ID, "T-") {
+			if len(t.ID) > 2 && t.ID[:2] == "T-" {
 				n := 0
 				fmt.Sscanf(t.ID[2:], "%d", &n)
 				if n > maxNum {
@@ -63,17 +77,9 @@ func RecordReview(projectDir string, featureID string, stage string, score int) 
 		}
 		tasks = append(tasks, redoTask)
 
-		tasksPath := filepath.Join(projectDir, ".ptsd", "tasks.yaml")
-		var b strings.Builder
-		b.WriteString("tasks:\n")
-		for _, t := range tasks {
-			b.WriteString("  - id: " + t.ID + "\n")
-			b.WriteString("    feature: " + t.Feature + "\n")
-			b.WriteString("    title: " + t.Title + "\n")
-			b.WriteString("    status: " + t.Status + "\n")
-			b.WriteString("    priority: " + t.Priority + "\n")
+		if err := saveTasks(projectDir, tasks); err != nil {
+			return fmt.Errorf("err:io failed to save redo task: %w", err)
 		}
-		os.WriteFile(tasksPath, []byte(b.String()), 0644)
 	}
 
 	return nil

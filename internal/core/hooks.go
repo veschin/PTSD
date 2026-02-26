@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -16,8 +17,32 @@ var validScopes = map[string]bool{
 	"STATUS": true,
 }
 
+var validCommitTypes = map[string]bool{
+	"feat":     true,
+	"add":      true,
+	"fix":      true,
+	"refactor": true,
+	"remove":   true,
+	"update":   true,
+}
+
+func GeneratePreCommitHook(projectDir string) error {
+	hookDir := filepath.Join(projectDir, ".git", "hooks")
+	if err := os.MkdirAll(hookDir, 0755); err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+
+	hookContent := "#!/bin/sh\nptsd validate\n"
+	hookPath := filepath.Join(hookDir, "pre-commit")
+	if err := os.WriteFile(hookPath, []byte(hookContent), 0755); err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+
+	return nil
+}
+
 func ValidateCommit(projectDir string, message string, stagedFiles []string) error {
-	scope, _, _, err := ParseCommitMessage(message)
+	scope, commitType, _, err := ParseCommitMessage(message)
 	if err != nil {
 		return err
 	}
@@ -26,37 +51,47 @@ func ValidateCommit(projectDir string, message string, stagedFiles []string) err
 		return fmt.Errorf("err:git unknown scope %s", scope)
 	}
 
+	if commitType != "" && !validCommitTypes[commitType] {
+		return fmt.Errorf("err:git invalid commit type %q: must be feat|add|fix|refactor|remove|update", commitType)
+	}
+
 	if scope == "TASK" || scope == "STATUS" {
 		return nil
 	}
 
-	hasImplFile := false
+	// Classify all staged files and check bidirectional scope matching
 	for _, file := range stagedFiles {
 		class, _ := ClassifyFile(projectDir, file)
-		if class == "IMPL" {
-			hasImplFile = true
-			break
+		if class != scope {
+			return fmt.Errorf("err:git file %s classified as %s but scope is [%s]", file, class, scope)
 		}
-	}
-
-	if hasImplFile && scope != "IMPL" {
-		return fmt.Errorf("err:git staged files require [IMPL] scope")
 	}
 
 	return nil
 }
 
 func ClassifyFile(projectDir string, path string) (string, error) {
-	switch {
-	case strings.HasPrefix(path, ".ptsd/docs/"):
-		return "PRD", nil
-	case strings.HasPrefix(path, ".ptsd/seeds/"):
-		return "SEED", nil
-	case strings.HasPrefix(path, ".ptsd/bdd/"):
-		return "BDD", nil
+	// .ptsd/ internal files
+	if strings.HasPrefix(path, ".ptsd/") {
+		switch {
+		case strings.HasPrefix(path, ".ptsd/docs/"):
+			return "PRD", nil
+		case strings.HasPrefix(path, ".ptsd/seeds/"):
+			return "SEED", nil
+		case strings.HasPrefix(path, ".ptsd/bdd/"):
+			return "BDD", nil
+		case path == ".ptsd/tasks.yaml":
+			return "TASK", nil
+		case path == ".ptsd/state.yaml" || path == ".ptsd/review-status.yaml":
+			return "STATUS", nil
+		case path == ".ptsd/features.yaml" || path == ".ptsd/ptsd.yaml" || path == ".ptsd/issues.yaml":
+			return "STATUS", nil
+		case strings.HasPrefix(path, ".ptsd/skills/"):
+			return "STATUS", nil
+		}
 	}
 
-	// Try to load config for test patterns
+	// Try config-based test patterns
 	cfg, err := LoadConfig(projectDir)
 	if err == nil && len(cfg.Testing.Patterns.Files) > 0 {
 		for _, pattern := range cfg.Testing.Patterns.Files {
@@ -66,14 +101,11 @@ func ClassifyFile(projectDir string, path string) (string, error) {
 		}
 	}
 
-	// Fallback: common test file patterns when config has no patterns or fails to load
-	if strings.HasPrefix(path, "tests/") && strings.HasSuffix(path, ".test.ts") {
-		return "TEST", nil
-	}
+	// Fallback: common test file patterns
 	if strings.HasSuffix(path, "_test.go") {
 		return "TEST", nil
 	}
-	if strings.HasSuffix(path, ".test.ts") {
+	if strings.HasSuffix(path, ".test.ts") || strings.HasSuffix(path, ".test.js") {
 		return "TEST", nil
 	}
 
@@ -86,11 +118,12 @@ func matchesTestPattern(path, pattern string) bool {
 		if len(parts) == 2 {
 			prefix := strings.TrimSuffix(parts[0], "/")
 			suffixRaw := strings.TrimPrefix(parts[1], "/")
-			// Remove leading "*" from suffix and any following "/"
 			suffix := strings.TrimPrefix(suffixRaw, "*")
 			suffix = strings.TrimPrefix(suffix, "/")
 
-			// Path must start with prefix/ and end with suffix
+			if prefix == "" {
+				return strings.HasSuffix(path, suffix)
+			}
 			return strings.HasPrefix(path, prefix+"/") && strings.HasSuffix(path, suffix)
 		}
 	}

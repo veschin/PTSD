@@ -32,6 +32,9 @@ func Validate(projectDir string) ([]ValidationError, error) {
 		}
 	}
 
+	// Load state for per-feature test check
+	state, _ := LoadState(projectDir)
+
 	// Check pipeline consistency per feature
 	for _, f := range features {
 		if f.Status == "planned" || f.Status == "deferred" {
@@ -53,7 +56,7 @@ func Validate(projectDir string) ([]ValidationError, error) {
 		}
 
 		if hasBDD {
-			hasTests := hasTestFiles(projectDir)
+			hasTests := hasTestsForFeature(projectDir, f.ID, state)
 			if !hasTests {
 				errors = append(errors, ValidationError{
 					Feature:  f.ID,
@@ -62,6 +65,16 @@ func Validate(projectDir string) ([]ValidationError, error) {
 				})
 			}
 		}
+	}
+
+	// Check regressions
+	regressions, _ := CheckRegressions(projectDir)
+	for _, r := range regressions {
+		errors = append(errors, ValidationError{
+			Feature:  r.Feature,
+			Category: "pipeline",
+			Message:  r.Message,
+		})
 	}
 
 	// Check for mock patterns in test files
@@ -76,7 +89,17 @@ func fileExists(path string) bool {
 	return err == nil
 }
 
-func hasTestFiles(projectDir string) bool {
+func hasTestsForFeature(projectDir string, featureID string, state *State) bool {
+	// Check state for test mappings
+	if state != nil {
+		if fs, ok := state.Features[featureID]; ok {
+			if tests, ok := fs.Tests.([]string); ok && len(tests) > 0 {
+				return true
+			}
+		}
+	}
+
+	// Fallback: walk project for test files (global check)
 	found := false
 	filepath.Walk(projectDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -96,7 +119,10 @@ func hasTestFiles(projectDir string) bool {
 
 func scanForMocks(projectDir string) []ValidationError {
 	var errors []ValidationError
-	mockPatterns := []string{"vi.mock", "jest.mock", "unittest.mock"}
+	mockPatterns := []string{
+		"vi.mock", "jest.mock", "unittest.mock",
+		"gomock", "testify/mock", "mock.Mock",
+	}
 
 	filepath.Walk(projectDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
