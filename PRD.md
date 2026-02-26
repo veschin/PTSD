@@ -358,32 +358,48 @@ ptsd validate
 
 Commit blocked on any pipeline violation. No bypass.
 
-### Commit Prefixes
+### Commit Message Format
 
-ptsd knows which files belong to which pipeline stage by their paths. On commit, it:
+```
+[SCOPE] type: message
+```
 
-1. Reads `git diff --staged` to identify all files in the commit.
-2. Classifies each file: PRD (`.ptsd/docs/`), seed (`.ptsd/seeds/`), BDD (`.ptsd/bdd/`), test (matching `testing.patterns.files`), or implementation (everything else).
-3. Determines the **highest stage** touched by the commit.
-4. Checks the commit message prefix matches or exceeds that stage.
-5. If prefix doesn't cover the highest stage — **ERROR, commit blocked**.
+**Scopes** (what pipeline artifact the commit touches):
 
-| Prefix | Covers Stages |
-|--------|--------------|
-| `PRD:` | PRD only |
-| `SEED:` | PRD, seed |
-| `BDD:` | PRD, seed, BDD |
-| `TEST:` | PRD, seed, BDD, tests |
-| `IMPL:` | All stages — full validation |
-| No prefix | All stages — full validation |
+| Scope | Covers |
+|-------|--------|
+| `[PRD]` | PRD document |
+| `[SEED]` | Seed data |
+| `[BDD]` | Gherkin scenarios |
+| `[TEST]` | Test files |
+| `[IMPL]` | Implementation code |
+| `[TASK]` | Task management |
+| `[STATUS]` | State/status updates |
+
+**Types** (conventional commit actions): `feat`, `add`, `fix`, `refactor`, `remove`, `update`.
+
+**Validation logic:**
+
+ptsd knows which files belong to which stage by their paths. On commit:
+
+1. Reads `git diff --staged` — classifies each file by stage.
+2. Reads commit message scope `[SCOPE]`.
+3. If staged files don't match the declared scope — **ERROR, commit blocked**.
+4. If scope is missing — **ERROR, commit blocked**.
+5. Scope determines which pipeline checks to run (e.g. `[BDD]` skips test/impl validation).
 
 **Examples:**
-- Commit touches `.ptsd/bdd/auth.feature` only → `BDD:` is sufficient.
-- Commit touches `.ptsd/bdd/auth.feature` + `src/auth.ts` → needs `IMPL:` (implementation file present).
-- Commit touches `.ptsd/seeds/auth/user.json` → `SEED:` is sufficient.
-- Commit without prefix touches any ptsd-managed file → ERROR, blocked.
+```
+[PRD] add: user authentication feature section
+[SEED] add: sample user data for auth feature
+[BDD] feat: login and registration scenarios
+[TEST] add: auth endpoint tests matching BDD scenarios
+[IMPL] feat: implement user authentication
+[TASK] add: catalog API implementation task
+[STATUS] update: mark auth feature as implemented
+```
 
-The pre-commit hook enforces this automatically. No bypass.
+Pre-commit hook enforces this automatically. No bypass.
 
 ---
 
@@ -414,7 +430,8 @@ review:
 
 hooks:
   pre_commit: true
-  commit_prefixes: [PRD, SEED, BDD, TEST, IMPL]
+  scopes: [PRD, SEED, BDD, TEST, IMPL, TASK, STATUS]
+  types: [feat, add, fix, refactor, remove, update]
 ```
 
 ### Test Adapter Selection
