@@ -26,9 +26,9 @@ features:
     review: passed
     issues: 0
   git-hooks:
-    stage: tests
+    stage: impl
     tests: written
-    review: passed
+    review: pending
     issues: 0
   status:
     stage: tests
@@ -81,6 +81,11 @@ features:
     issues: 0
   adopt:
     stage: bdd
+    tests: absent
+    review: pending
+    issues: 0
+  common-issues:
+    stage: prd
     tests: absent
     review: pending
     issues: 0

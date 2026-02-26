@@ -52,3 +52,6 @@ features:
   - id: adopt
     title: "Existing Project Bootstrap"
     status: planned
+  - id: common-issues
+    title: "Common Issues Registry"
+    status: planned

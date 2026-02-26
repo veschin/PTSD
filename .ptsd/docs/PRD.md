@@ -163,6 +163,7 @@ project-root/
     state.yaml                    # hashes, scores, test results
     review-status.yaml            # per-feature review verdicts and issues
     tasks.yaml                    # task list
+    issues.yaml                   # common issues registry (recurring problems)
     docs/
       PRD.md                      # product requirements document
     seeds/
@@ -536,6 +537,69 @@ Categories: `pipeline`, `config`, `io`, `user`, `test`.
 | 3 | Config error |
 | 4 | I/O error |
 | 5 | Test runner failure |
+
+---
+
+## Common Issues Registry
+
+<!-- feature:common-issues -->
+
+PTSD maintains a per-project **common issues** file at `.ptsd/issues.yaml`. This is a compressed knowledge base of recurring problems encountered during development.
+
+### Purpose
+
+LLMs lose context between sessions. The same mistakes repeat: wrong venv, missing keys, reading stale files, misconfigured tools. Common issues file breaks this cycle — LLM reads it at session start and avoids known traps.
+
+### Format
+
+```yaml
+issues:
+  - id: venv-wrong-python
+    category: env
+    summary: "venv uses system python instead of project python"
+    fix: "rm -rf .venv && python3.12 -m venv .venv"
+  - id: missing-api-key
+    category: access
+    summary: "OPENAI_API_KEY not set in .env"
+    fix: "cp .env.example .env && fill keys"
+  - id: stale-lock
+    category: io
+    summary: "LLM reads package-lock.json instead of pnpm-lock.yaml"
+    fix: "always check which package manager is configured in ptsd.yaml"
+```
+
+Fields:
+- `id` — slug, unique per issue
+- `category` — `env` | `access` | `io` | `config` | `test` | `llm`
+- `summary` — one line, max 80 chars
+- `fix` — one line, concrete action
+
+### Rules
+
+1. **LLM MUST read `.ptsd/issues.yaml` at session start** — before any work.
+2. **Add issue immediately** when a problem occurs for the second time.
+3. **Remove issue** when root cause is permanently fixed (not just worked around).
+4. **No duplicates.** Check existing issues before adding.
+5. **No essays.** Summary + fix = two short lines. If it needs more, it's a task, not an issue.
+
+### Commands
+
+**`ptsd issues list [--category C]`** — List all issues, optionally filtered.
+
+**`ptsd issues add --category C "summary" --fix "fix"`** — Add new issue.
+
+**`ptsd issues remove <id>`** — Remove resolved issue.
+
+### Categories
+
+| Category | Covers |
+|----------|--------|
+| `env` | Wrong runtime, venv, node version, PATH |
+| `access` | Missing API keys, tokens, credentials, permissions |
+| `io` | Reading wrong files, stale caches, wrong paths |
+| `config` | Misconfigured tools, wrong settings |
+| `test` | Flaky tests, wrong test runner, missing fixtures |
+| `llm` | LLM-specific: hallucinated paths, wrong assumptions, repeated mistakes |
 
 ---
 
