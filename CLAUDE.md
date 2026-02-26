@@ -55,6 +55,25 @@ Every artifact links to a feature. No orphan files. No skipping steps.
 
 LLM MUST record progress immediately as it happens. Not at the end, not in batch, not "later".
 
+### Session start
+
+On every session start, BEFORE doing any work:
+1. Read `.ptsd/review-status.yaml` — understand where each feature is
+2. Read `.ptsd/tasks.yaml` — check pending tasks
+3. Decide what to work on based on current state
+
+### When to update review-status.yaml
+
+Update IMMEDIATELY when any of these happen:
+- Test written → `tests: written`
+- Test reviewed → `review: passed` or `failed` + `issues`/`issues_list`
+- Implementation written → `stage: impl`, `review: pending`
+- Implementation reviewed → `review: passed` or `failed`
+- Issue fixed → remove from `issues_list`, decrement `issues`
+- Stage advanced → update `stage`
+
+Do NOT batch updates. Do NOT defer to end of session. Every state change = immediate file update.
+
 **ptsd CLI does not exist yet (bootstrapping phase).** Track manually:
 - `.ptsd/state.yaml` — feature stages, hashes, scores
 - `.ptsd/review-status.yaml` — review verdicts per feature

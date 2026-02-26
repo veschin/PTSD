@@ -6,14 +6,14 @@ features:
     review: pending
     issues: 0
   config:
-    stage: tests
+    stage: impl
     tests: written
-    review: passed
+    review: pending
     issues: 0
   feature-mgmt:
-    stage: tests
+    stage: impl
     tests: written
-    review: passed
+    review: pending
     issues: 0
   task-mgmt:
     stage: tests
@@ -43,7 +43,7 @@ features:
 
   # Pipeline
   prd-check:
-    stage: tests
+    stage: impl
     tests: written
     review: pending
     issues: 0
