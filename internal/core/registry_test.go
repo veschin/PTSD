@@ -219,6 +219,15 @@ func setupFeatureArtifacts(t *testing.T, dir string, id string) {
 	if err := os.WriteFile(filepath.Join(bddDir, id+".feature"), []byte(scenarios), 0644); err != nil {
 		t.Fatal(err)
 	}
+	// Create PRD with anchor
+	docsDir := filepath.Join(dir, ".ptsd", "docs")
+	if err := os.MkdirAll(docsDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	prd := "# PRD\n<!-- feature:" + id + " -->\nSection for " + id + "\n"
+	if err := os.WriteFile(filepath.Join(docsDir, "PRD.md"), []byte(prd), 0644); err != nil {
+		t.Fatal(err)
+	}
 	// Create seed marker
 	seedDir := filepath.Join(dir, ".ptsd", "seeds", id)
 	if err := os.MkdirAll(seedDir, 0755); err != nil {
