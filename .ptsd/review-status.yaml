@@ -16,14 +16,14 @@ features:
     review: pending
     issues: 0
   task-mgmt:
-    stage: tests
+    stage: impl
     tests: written
-    review: passed
+    review: pending
     issues: 0
   validate:
-    stage: tests
+    stage: impl
     tests: written
-    review: passed
+    review: pending
     issues: 0
   git-hooks:
     stage: impl
@@ -31,14 +31,14 @@ features:
     review: pending
     issues: 0
   status:
-    stage: tests
+    stage: impl
     tests: written
-    review: passed
+    review: pending
     issues: 0
   output:
-    stage: tests
+    stage: impl
     tests: written
-    review: passed
+    review: pending
     issues: 0
 
   # Pipeline
@@ -48,29 +48,29 @@ features:
     review: pending
     issues: 0
   seed-mgmt:
-    stage: tests
+    stage: impl
     tests: written
-    review: passed
+    review: pending
     issues: 0
   bdd-mgmt:
-    stage: tests
+    stage: impl
     tests: written
-    review: passed
+    review: pending
     issues: 0
   test-integration:
-    stage: tests
+    stage: impl
     tests: written
-    review: passed
+    review: pending
     issues: 0
   state-tracking:
-    stage: tests
+    stage: impl
     tests: written
-    review: passed
+    review: pending
     issues: 0
 
   # Advanced
   review:
-    stage: tests
+    stage: impl
     tests: written
     review: pending
     issues: 0

@@ -143,12 +143,16 @@ func readFeatureIDs(projectDir string) ([]string, error) {
 		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(trimmed, "- id: ") {
 			id := strings.TrimPrefix(trimmed, "- id: ")
-			// Check if next lines have status planned/deferred — skip those
+			// Check subsequent indented lines for status planned/deferred
 			status := ""
-			if i+1 < len(lines) {
-				next := strings.TrimSpace(lines[i+1])
+			for j := i + 1; j < len(lines); j++ {
+				next := strings.TrimSpace(lines[j])
+				if strings.HasPrefix(next, "- id: ") || next == "" {
+					break
+				}
 				if strings.HasPrefix(next, "status: ") {
 					status = strings.TrimPrefix(next, "status: ")
+					break
 				}
 			}
 			if status != "planned" && status != "deferred" {
