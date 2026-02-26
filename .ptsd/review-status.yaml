@@ -1,0 +1,86 @@
+features:
+  # Core
+  init:
+    stage: bdd
+    tests: absent
+    review: pending
+    issues: 0
+  config:
+    stage: tests
+    tests: written
+    review: passed
+    issues: 0
+  feature-mgmt:
+    stage: tests
+    tests: written
+    review: passed
+    issues: 0
+  task-mgmt:
+    stage: tests
+    tests: written
+    review: passed
+    issues: 0
+  validate:
+    stage: tests
+    tests: written
+    review: passed
+    issues: 0
+  git-hooks:
+    stage: tests
+    tests: written
+    review: passed
+    issues: 0
+  status:
+    stage: tests
+    tests: written
+    review: passed
+    issues: 0
+  output:
+    stage: tests
+    tests: written
+    review: passed
+    issues: 0
+
+  # Pipeline
+  prd-check:
+    stage: tests
+    tests: written
+    review: pending
+    issues: 0
+  seed-mgmt:
+    stage: tests
+    tests: written
+    review: passed
+    issues: 0
+  bdd-mgmt:
+    stage: tests
+    tests: written
+    review: passed
+    issues: 0
+  test-integration:
+    stage: tests
+    tests: written
+    review: passed
+    issues: 0
+  state-tracking:
+    stage: tests
+    tests: written
+    review: passed
+    issues: 0
+
+  # Advanced
+  review:
+    stage: tests
+    tests: written
+    review: pending
+    issues: 0
+  skills:
+    stage: bdd
+    tests: absent
+    review: pending
+    issues: 0
+  adopt:
+    stage: bdd
+    tests: absent
+    review: pending
+    issues: 0

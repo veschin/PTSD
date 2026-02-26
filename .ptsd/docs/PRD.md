@@ -64,6 +64,16 @@ Each feature moves through stages independently. Each step requires review (qual
 
 After completing each pipeline stage, LLM runs the corresponding review skill. The review produces a score (0-10). If score < configured threshold (`review.min_score` in ptsd.yaml, default 7), the step must be redone. Score is stored in `.ptsd/state.yaml`.
 
+### Mandatory Progress Tracking
+
+LLM MUST record progress immediately as it happens — not at the end, not in batch, not "later". Every completed step, every review, every stage transition is recorded via `ptsd` commands the moment it occurs. This is non-negotiable.
+
+When `ptsd` is not yet available (bootstrapping phase), LLM records progress in `.ptsd/state.yaml` and `.ptsd/review-status.yaml` manually. Once `ptsd` is operational, ALL progress tracking goes exclusively through `ptsd` commands — no direct file edits for state.
+
+Review status format defined in [Quality Scoring](#quality-scoring) section under feature `review`.
+
+Rationale: LLMs lose context between sessions. If progress isn't recorded immediately, it's lost. The next session starts blind. `ptsd` is the single source of truth for what was done, what passed review, and what's next.
+
 ---
 
 ## Core Concepts
@@ -103,12 +113,43 @@ files:
 
 ### Quality Scoring
 
+<!-- feature:review -->
+
 LLM reviews each pipeline step using ptsd-provided skills. Each review outputs:
 - **Score**: 0-10 (0 = doesn't match PRD at all, 10 = perfect)
 - **Issues**: explicit list of problems found (can't just say "looks good")
 - **Verdict**: pass / redo
 
 Stored in `.ptsd/state.yaml` per feature per stage. Score history preserved.
+
+#### Review Status File
+
+`.ptsd/review-status.yaml` — per-feature review tracking. Always contains ALL registered features. Fields are deterministic, no free text. Managed by `ptsd review` command.
+
+```yaml
+features:
+  config:
+    stage: tests
+    tests: written
+    review: passed
+    issues: 0
+  output:
+    stage: tests
+    tests: written
+    review: failed
+    issues: 1
+    issues_list:
+      - "TestRenderTestResults format doesn't match PRD agent spec"
+```
+
+Fields:
+- `stage` — current pipeline stage: `prd` | `seed` | `bdd` | `tests` | `impl`
+- `tests` — test file status: `absent` | `written`
+- `review` — review verdict: `pending` | `passed` | `failed`
+- `issues` — count of open issues (0 = clean)
+- `issues_list` — string array, one short line per issue (only present when issues > 0; removed when all resolved)
+
+**Automation:** `ptsd review <feature-id> --stage <stage>` updates review-status.yaml automatically. Sets verdict, records issues, manages issues_list.
 
 ---
 
@@ -120,6 +161,7 @@ project-root/
     ptsd.yaml                     # project config
     features.yaml                 # feature registry (source of truth)
     state.yaml                    # hashes, scores, test results
+    review-status.yaml            # per-feature review verdicts and issues
     tasks.yaml                    # task list
     docs/
       PRD.md                      # product requirements document
