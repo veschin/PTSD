@@ -8,28 +8,39 @@ features:
   config:
     stage: impl
     tests: written
-    review: pending
-    issues: 0
+    review: failed
+    issues: 2
+    issues_list:
+      - "test adapter selection logic still basic (TAP override)"
+      - "no full-config integration test covering all sections"
   feature-mgmt:
     stage: impl
     tests: written
-    review: pending
-    issues: 0
+    review: failed
+    issues: 1
+    issues_list:
+      - "no test for implemented status with passing tests (positive case)"
   task-mgmt:
     stage: impl
     tests: written
-    review: pending
-    issues: 0
+    review: failed
+    issues: 1
+    issues_list:
+      - "no unblocked-task semantics (feature stage awareness)"
   validate:
     stage: impl
     tests: written
-    review: pending
-    issues: 0
+    review: failed
+    issues: 1
+    issues_list:
+      - "CheckReviewGate not called in Validate"
   git-hooks:
     stage: impl
     tests: written
-    review: pending
-    issues: 0
+    review: failed
+    issues: 1
+    issues_list:
+      - "IMPL scope does not trigger full Validate"
   status:
     stage: impl
     tests: written
@@ -38,42 +49,50 @@ features:
   output:
     stage: impl
     tests: written
-    review: pending
+    review: passed
     issues: 0
 
   # Pipeline
   prd-check:
     stage: impl
     tests: written
-    review: pending
+    review: passed
     issues: 0
   seed-mgmt:
     stage: impl
     tests: written
-    review: pending
-    issues: 0
+    review: failed
+    issues: 1
+    issues_list:
+      - "CheckSeeds does not verify manifest has actual files"
   bdd-mgmt:
     stage: impl
     tests: written
-    review: pending
+    review: passed
     issues: 0
   test-integration:
     stage: impl
     tests: written
-    review: pending
-    issues: 0
+    review: failed
+    issues: 1
+    issues_list:
+      - "feature filter in RunTests does not actually filter test execution"
   state-tracking:
     stage: impl
     tests: written
-    review: pending
-    issues: 0
+    review: failed
+    issues: 1
+    issues_list:
+      - "status/validate/task-next do not auto-trigger CheckRegressions"
 
   # Advanced
   review:
     stage: impl
     tests: written
-    review: pending
-    issues: 0
+    review: failed
+    issues: 1
+    issues_list:
+      - "does not update review-status.yaml automatically"
   skills:
     stage: bdd
     tests: absent
