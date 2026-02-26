@@ -1,0 +1,54 @@
+features:
+  # Core
+  - id: init
+    title: "Project Initialization"
+    status: planned
+  - id: config
+    title: "Configuration System"
+    status: planned
+  - id: feature-mgmt
+    title: "Feature Management"
+    status: planned
+  - id: task-mgmt
+    title: "Task Management"
+    status: planned
+  - id: validate
+    title: "Pipeline Validation"
+    status: planned
+  - id: git-hooks
+    title: "Git Hook Enforcement"
+    status: planned
+  - id: status
+    title: "Project Status"
+    status: planned
+  - id: output
+    title: "Dual Render Mode"
+    status: planned
+
+  # Pipeline
+  - id: prd-check
+    title: "PRD Validation"
+    status: planned
+  - id: seed-mgmt
+    title: "Seed Management"
+    status: planned
+  - id: bdd-mgmt
+    title: "BDD Management"
+    status: planned
+  - id: test-integration
+    title: "Test Integration"
+    status: planned
+  - id: state-tracking
+    title: "State & Regression Detection"
+    status: planned
+
+  # Advanced
+  - id: review
+    title: "Quality Scoring"
+    status: planned
+  - id: skills
+    title: "Skill Generation"
+    status: planned
+  - id: adopt
+    title: "Existing Project Bootstrap"
+    status: planned
