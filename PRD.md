@@ -360,18 +360,30 @@ Commit blocked on any pipeline violation. No bypass.
 
 ### Commit Prefixes
 
-Allow partial pipeline work to be committed:
+ptsd knows which files belong to which pipeline stage by their paths. On commit, it:
 
-| Prefix | Allowed Without |
-|--------|----------------|
-| `PRD:` | Seed, BDD, tests, implementation |
-| `SEED:` | BDD, tests, implementation |
-| `BDD:` | Tests, implementation |
-| `TEST:` | Implementation |
-| `IMPL:` | Nothing — full validation |
-| No prefix | Nothing — full validation |
+1. Reads `git diff --staged` to identify all files in the commit.
+2. Classifies each file: PRD (`.ptsd/docs/`), seed (`.ptsd/seeds/`), BDD (`.ptsd/bdd/`), test (matching `testing.patterns.files`), or implementation (everything else).
+3. Determines the **highest stage** touched by the commit.
+4. Checks the commit message prefix matches or exceeds that stage.
+5. If prefix doesn't cover the highest stage — **ERROR, commit blocked**.
 
-The pre-commit hook reads the commit message prefix and adjusts validation scope accordingly.
+| Prefix | Covers Stages |
+|--------|--------------|
+| `PRD:` | PRD only |
+| `SEED:` | PRD, seed |
+| `BDD:` | PRD, seed, BDD |
+| `TEST:` | PRD, seed, BDD, tests |
+| `IMPL:` | All stages — full validation |
+| No prefix | All stages — full validation |
+
+**Examples:**
+- Commit touches `.ptsd/bdd/auth.feature` only → `BDD:` is sufficient.
+- Commit touches `.ptsd/bdd/auth.feature` + `src/auth.ts` → needs `IMPL:` (implementation file present).
+- Commit touches `.ptsd/seeds/auth/user.json` → `SEED:` is sufficient.
+- Commit without prefix touches any ptsd-managed file → ERROR, blocked.
+
+The pre-commit hook enforces this automatically. No bypass.
 
 ---
 
