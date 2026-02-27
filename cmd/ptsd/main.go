@@ -59,6 +59,12 @@ func main() {
 		exitCode = cli.RunSkills(subargs, agentMode)
 	case "issues":
 		exitCode = cli.RunIssues(subargs, agentMode)
+	case "context":
+		exitCode = cli.RunContext(subargs, agentMode)
+	case "gate-check":
+		exitCode = cli.RunGateCheck(subargs, agentMode)
+	case "auto-track":
+		exitCode = cli.RunAutoTrack(subargs, agentMode)
 	default:
 		fmt.Fprintf(os.Stderr, "err:user unknown command: %s\n", cmd)
 		exitCode = 2

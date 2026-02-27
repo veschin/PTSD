@@ -80,9 +80,104 @@ func InitProject(dir string, name string) error {
 		return err
 	}
 
-	// Install pre-commit hook.
+	// Install git hooks.
 	if err := GeneratePreCommitHook(dir); err != nil {
 		return err
+	}
+	if err := GenerateCommitMsgHook(dir); err != nil {
+		return err
+	}
+
+	// Generate Claude Code hooks.
+	if err := generateClaudeHooks(dir); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func generateClaudeHooks(dir string) error {
+	bin := ptsdBinaryPath()
+
+	// Create .claude/hooks/ directory
+	hooksDir := filepath.Join(dir, ".claude", "hooks")
+	if err := os.MkdirAll(hooksDir, 0755); err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+
+	// ptsd-context.sh
+	contextScript := "#!/bin/sh\n" + bin + " context --agent 2>/dev/null\nexit 0\n"
+	if err := os.WriteFile(filepath.Join(hooksDir, "ptsd-context.sh"), []byte(contextScript), 0755); err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+
+	// ptsd-gate.sh
+	gateScript := "#!/bin/sh\n" + bin + " hooks pre-tool-use --agent\n"
+	if err := os.WriteFile(filepath.Join(hooksDir, "ptsd-gate.sh"), []byte(gateScript), 0755); err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+
+	// ptsd-track.sh
+	trackScript := "#!/bin/sh\n" + bin + " hooks post-tool-use --agent 2>/dev/null\nexit 0\n"
+	if err := os.WriteFile(filepath.Join(hooksDir, "ptsd-track.sh"), []byte(trackScript), 0755); err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+
+	// .claude/settings.json
+	contextHook := hooksDir + "/ptsd-context.sh"
+	gateHook := hooksDir + "/ptsd-gate.sh"
+	trackHook := hooksDir + "/ptsd-track.sh"
+
+	settingsJSON := `{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "` + contextHook + `"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "` + contextHook + `"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "` + gateHook + `"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "` + trackHook + `"
+          }
+        ]
+      }
+    ]
+  }
+}
+`
+	settingsPath := filepath.Join(dir, ".claude", "settings.json")
+	if err := os.WriteFile(settingsPath, []byte(settingsJSON), 0644); err != nil {
+		return fmt.Errorf("err:io %w", err)
 	}
 
 	return nil
@@ -159,25 +254,39 @@ func buildPRDTemplate(name string) string {
 func buildClaudeMD() string {
 	return `# Claude Agent Instructions
 
+## Authority Hierarchy (ENFORCED BY HOOKS)
+
+PTSD (iron law) > User (context provider) > Assistant (executor)
+
+- PTSD decides what CAN and CANNOT be done. Pipeline, gates, validation — non-negotiable.
+  Hooks enforce this automatically — writes that violate pipeline are BLOCKED.
+- User provides context and requirements. User also follows ptsd rules.
+- Assistant executes within ptsd constraints. Writes code, docs, tests on behalf of user.
+
 ## Session Start Protocol
 
 EVERY session, BEFORE any work:
-1. Run: ptsd task next --agent
-2. Follow its output exactly.
+1. Run: ptsd context --agent — see full pipeline state
+2. Run: ptsd task next --agent — get next task
+3. Follow output exactly.
 
 ## Commands (always use --agent flag)
 
+- ptsd context --agent              — full pipeline state (auto-injected by hooks)
 - ptsd status --agent               — project overview
 - ptsd task next --agent            — next task to work on
 - ptsd task update <id> --status WIP — mark task in progress
 - ptsd validate --agent             — check pipeline before commit
 - ptsd feature list --agent         — list all features
+- ptsd seed init <id> --agent       — initialize seed directory
+- ptsd gate-check --file <path> --agent — check if file write is allowed
 
 ## Pipeline (strict order, no skipping)
 
 PRD → Seed → BDD → Tests → Implementation
 
 Each stage requires review score ≥ 7 before advancing.
+Hooks enforce gates automatically — blocked writes show the reason.
 
 ## Rules
 
@@ -397,10 +506,10 @@ trigger: At session start or when unsure what to do next
 
 ## Mandatory Session Start
 
-1. ptsd task next --agent  — get next task
-2. Read linked PRD section, BDD scenarios, seed data
-3. Do the work
-4. Record progress immediately (do not defer)
+1. ptsd context --agent   — see full pipeline state (auto-injected by hooks)
+2. ptsd task next --agent — get next task
+3. Read linked PRD section, BDD scenarios, seed data
+4. Do the work (hooks auto-track progress)
 5. ptsd validate --agent  — before every commit
 6. Commit: [SCOPE] type: message
 
@@ -414,11 +523,12 @@ PRD → Seed → BDD → Tests → Implementation
 - ptsd test map <f> <t>  — map BDD to test file (requires BDD)
 - ptsd review <id> --stage <stage>  — record review score
 
-## Gate Rules
+## Gate Rules (enforced by hooks)
 
-- No BDD without seed
+- No BDD without seed (PreToolUse blocks write)
 - No test mapping without BDD
-- No impl tasks without tests
+- No impl without tests
 - No implemented status without all tests passing
+- Progress auto-tracked via PostToolUse hook
 `
 }
