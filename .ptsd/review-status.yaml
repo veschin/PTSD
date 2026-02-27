@@ -23,12 +23,8 @@ features:
   validate:
     stage: impl
     tests: written
-    review: failed
-    issues: 3
-    issues_list:
-      - "assertHasError helper ignores contains arg — message assertions not verified"
-      - "hasTestsForFeature fallback returns true if any test file exists anywhere"
-      - "CheckReviewGate errors silently swallowed with continue"
+    review: passed
+    issues: 0
   git-hooks:
     stage: impl
     tests: written
@@ -76,13 +72,8 @@ features:
   review:
     stage: impl
     tests: written
-    review: failed
-    issues: 4
-    issues_list:
-      - "validReviewStages uses 'test' but pipeline uses 'tests' (plural)"
-      - "CheckReviewGate errors on missing config, but RecordReview falls back to default"
-      - "repeated failing review does not update issues (if entry.Issues == 0 guard)"
-      - "no test for CheckReviewGate without config file"
+    review: passed
+    issues: 0
   skills:
     stage: bdd
     tests: absent
