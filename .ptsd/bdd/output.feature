@@ -26,3 +26,26 @@ Feature: Dual Render Mode
     Given feature "user-auth" has PRD at lines 30-40
     When I run "ptsd task next --agent"
     Then output includes "PRD:l30-40"
+
+  # CLI Entry Point Routing
+  Scenario: Unknown subcommand shows error
+    Given an initialized project
+    When I run "ptsd unknown-cmd"
+    Then exit code is 2
+    And output contains "err:user unknown command"
+
+  Scenario: --agent flag passed to handlers
+    Given an initialized project
+    When I run "ptsd config show --agent"
+    Then agent mode output format is used
+
+  Scenario: All subcommands route correctly
+    Given an initialized project
+    When I run "ptsd status"
+    Then it executes RunStatus handler
+
+  Scenario: Missing subcommand shows usage
+    Given an initialized project
+    When I run "ptsd"
+    Then exit code is 2
+    And output contains "usage:"

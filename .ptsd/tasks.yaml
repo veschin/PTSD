@@ -38,6 +38,6 @@ tasks:
   - id: CLI-7
     feature: output
     title: "Wire main.go with arg routing to all CLI handlers"
-    status: TODO
+    status: DONE
     priority: A
     description: "Create cmd/ptsd/main.go with full routing table, --agent flag"
