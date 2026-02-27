@@ -13,16 +13,18 @@ type GateCheckResult struct {
 }
 
 // alwaysAllowed lists file paths that never require gate checks.
+// NOTE: review-status.yaml is NOT here — direct AI edits are blocked.
+// AutoTrack (PostToolUse) updates it via Go code, bypassing the gate.
+// Use `ptsd review` to set review verdicts.
 var alwaysAllowed = map[string]bool{
-	".ptsd/docs/PRD.md":          true,
-	".ptsd/tasks.yaml":           true,
-	".ptsd/review-status.yaml":   true,
-	".ptsd/state.yaml":           true,
-	".ptsd/features.yaml":        true,
-	".ptsd/ptsd.yaml":            true,
-	".ptsd/issues.yaml":          true,
-	"CLAUDE.md":                  true,
-	".claude/settings.json":      true,
+	".ptsd/docs/PRD.md":     true,
+	".ptsd/tasks.yaml":      true,
+	".ptsd/state.yaml":      true,
+	".ptsd/features.yaml":   true,
+	".ptsd/ptsd.yaml":       true,
+	".ptsd/issues.yaml":     true,
+	"CLAUDE.md":             true,
+	".claude/settings.json": true,
 }
 
 func GateCheck(projectDir, filePath string) GateCheckResult {
@@ -38,6 +40,16 @@ func GateCheck(projectDir, filePath string) GateCheckResult {
 	// Always-allowed files
 	if alwaysAllowed[rel] {
 		return GateCheckResult{Allowed: true}
+	}
+
+	// review-status.yaml: blocked for direct AI edits.
+	// AutoTrack (PostToolUse) writes via Go code, bypassing the gate.
+	// Use `ptsd review` to set review verdicts.
+	if rel == ".ptsd/review-status.yaml" {
+		return GateCheckResult{
+			Allowed: false,
+			Reason:  "direct edits to review-status.yaml are blocked — use ptsd review",
+		}
 	}
 
 	// Skills are always allowed

@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/veschin/ptsd/internal/core"
 )
@@ -15,8 +16,14 @@ func RunInit(args []string, agentMode bool) int {
 	}
 
 	name := ""
-	if len(args) > 0 {
-		name = args[0]
+	for i, arg := range args {
+		if arg == "--name" && i+1 < len(args) {
+			name = args[i+1]
+			break
+		}
+		if !strings.HasPrefix(arg, "-") && name == "" {
+			name = arg
+		}
 	}
 
 	result, err := core.InitProject(cwd, name)

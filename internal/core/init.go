@@ -99,6 +99,15 @@ func InitProject(dir string, name string) (*InitResult, error) {
 		return nil, err
 	}
 
+	// Write .gitignore if it doesn't exist.
+	gitignorePath := filepath.Join(dir, ".gitignore")
+	if _, err := os.Stat(gitignorePath); os.IsNotExist(err) {
+		gitignore := "# Build artifacts\n*.exe\n*.dll\n*.so\n*.dylib\n\n# Binary output (match project name)\n/" + name + "\n"
+		if err := writeFile(gitignorePath, gitignore); err != nil {
+			return nil, err
+		}
+	}
+
 	// Install git hooks.
 	if err := GeneratePreCommitHook(dir); err != nil {
 		return nil, err

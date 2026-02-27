@@ -54,6 +54,7 @@ func TestInitCreatesAllExpectedDirsAndFiles(t *testing.T) {
 		".ptsd/review-status.yaml",
 		".ptsd/docs/PRD.md",
 		"CLAUDE.md",
+		".gitignore",
 		".git/hooks/pre-commit",
 		".claude/skills/write-prd/SKILL.md",
 		".claude/skills/workflow/SKILL.md",

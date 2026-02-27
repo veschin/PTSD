@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -76,21 +77,26 @@ func ValidateCommitFromFile(projectDir, msgFile string) error {
 		return fmt.Errorf("err:git empty commit message")
 	}
 
-	// Parse and validate format only (no staged file classification — git handles that in pre-commit)
-	scope, commitType, _, err := ParseCommitMessage(msg)
+	// Get staged files and delegate to full ValidateCommit
+	stagedFiles := getStagedFiles(projectDir)
+	return ValidateCommit(projectDir, msg, stagedFiles)
+}
+
+// getStagedFiles returns file paths staged for commit via git diff --cached.
+func getStagedFiles(projectDir string) []string {
+	cmd := exec.Command("git", "diff", "--cached", "--name-only")
+	cmd.Dir = projectDir
+	out, err := cmd.Output()
 	if err != nil {
-		return err
+		return nil
 	}
-
-	if !validScopes[scope] {
-		return fmt.Errorf("err:git unknown scope %s", scope)
+	var files []string
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if line != "" {
+			files = append(files, line)
+		}
 	}
-
-	if commitType != "" && !validCommitTypes[commitType] {
-		return fmt.Errorf("err:git invalid commit type %q: must be feat|add|fix|refactor|remove|update", commitType)
-	}
-
-	return nil
+	return files
 }
 
 func ValidateCommit(projectDir string, message string, stagedFiles []string) error {

@@ -2,6 +2,7 @@ package core
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -241,6 +242,51 @@ func TestParseCommitMessage(t *testing.T) {
 		if text != tt.text {
 			t.Errorf("ParseCommitMessage(%q) text = %q, want %q", tt.msg, text, tt.text)
 		}
+	}
+}
+
+func TestValidateCommitFromFile_ChecksStagedFiles(t *testing.T) {
+	// This test requires a real git repo to test staged file classification
+	dir := t.TempDir()
+
+	// Init git repo
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=test",
+			"GIT_AUTHOR_EMAIL=test@test.com",
+			"GIT_COMMITTER_NAME=test",
+			"GIT_COMMITTER_EMAIL=test@test.com",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+
+	git("init")
+	setupPtsdConfig(t, dir, nil)
+
+	// Create and stage a BDD file
+	bddDir := filepath.Join(dir, ".ptsd", "bdd")
+	os.MkdirAll(bddDir, 0755)
+	os.WriteFile(filepath.Join(bddDir, "auth.feature"), []byte("Feature: Auth\n"), 0644)
+	git("add", ".ptsd/bdd/auth.feature")
+
+	// Write commit message with IMPL scope (mismatch with BDD file)
+	msgFile := filepath.Join(dir, "commit-msg.txt")
+	os.WriteFile(msgFile, []byte("[IMPL] add: auth feature"), 0644)
+
+	err := ValidateCommitFromFile(dir, msgFile)
+	if err == nil {
+		t.Fatal("expected ValidateCommitFromFile to fail on scope mismatch")
+	}
+	if !strings.Contains(err.Error(), "err:git") {
+		t.Errorf("expected err:git error, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "classified as BDD but scope is [IMPL]") {
+		t.Errorf("expected scope mismatch error, got: %v", err)
 	}
 }
 

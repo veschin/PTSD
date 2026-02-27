@@ -12,7 +12,6 @@ func TestGateCheck_AlwaysAllowed(t *testing.T) {
 	allowed := []string{
 		".ptsd/docs/PRD.md",
 		".ptsd/tasks.yaml",
-		".ptsd/review-status.yaml",
 		".ptsd/state.yaml",
 		"CLAUDE.md",
 	}
@@ -22,6 +21,15 @@ func TestGateCheck_AlwaysAllowed(t *testing.T) {
 		if !result.Allowed {
 			t.Errorf("expected %s to be always allowed, got blocked: %s", f, result.Reason)
 		}
+	}
+}
+
+func TestGateCheck_ReviewStatusBlocked(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "auth:in-progress")
+
+	result := GateCheck(dir, ".ptsd/review-status.yaml")
+	if result.Allowed {
+		t.Error("expected .ptsd/review-status.yaml to be blocked (BYPASS-2 fix)")
 	}
 }
 
