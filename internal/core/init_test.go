@@ -251,3 +251,137 @@ func TestInitDefaultNameFromDir(t *testing.T) {
 		t.Errorf("expected project name 'myproject', got %q", cfg.Project.Name)
 	}
 }
+
+// TestInitGeneratesClaudeHookScripts verifies .claude/hooks/ scripts are created.
+func TestInitGeneratesClaudeHookScripts(t *testing.T) {
+	dir := t.TempDir()
+	setupGitDir(t, dir)
+
+	if err := InitProject(dir, "MyApp"); err != nil {
+		t.Fatalf("InitProject failed: %v", err)
+	}
+
+	scripts := []string{
+		".claude/hooks/ptsd-context.sh",
+		".claude/hooks/ptsd-gate.sh",
+		".claude/hooks/ptsd-track.sh",
+	}
+
+	for _, script := range scripts {
+		path := filepath.Join(dir, script)
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Errorf("expected %s to exist: %v", script, err)
+			continue
+		}
+		if info.Mode()&0111 == 0 {
+			t.Errorf("expected %s to be executable, mode=%v", script, info.Mode())
+		}
+	}
+}
+
+// TestInitGeneratesClaudeSettings verifies .claude/settings.json is created with hook wiring.
+func TestInitGeneratesClaudeSettings(t *testing.T) {
+	dir := t.TempDir()
+	setupGitDir(t, dir)
+
+	if err := InitProject(dir, "MyApp"); err != nil {
+		t.Fatalf("InitProject failed: %v", err)
+	}
+
+	settingsPath := filepath.Join(dir, ".claude", "settings.json")
+	data, err := os.ReadFile(settingsPath)
+	if err != nil {
+		t.Fatalf("expected .claude/settings.json to exist: %v", err)
+	}
+
+	content := string(data)
+
+	// Check hook events are wired
+	if !strings.Contains(content, "SessionStart") {
+		t.Error("settings.json missing SessionStart hook")
+	}
+	if !strings.Contains(content, "UserPromptSubmit") {
+		t.Error("settings.json missing UserPromptSubmit hook")
+	}
+	if !strings.Contains(content, "PreToolUse") {
+		t.Error("settings.json missing PreToolUse hook")
+	}
+	if !strings.Contains(content, "PostToolUse") {
+		t.Error("settings.json missing PostToolUse hook")
+	}
+
+	// Check matchers
+	if !strings.Contains(content, `"matcher": "Edit|Write"`) {
+		t.Error("settings.json missing Edit|Write matcher for PreToolUse")
+	}
+
+	// Check hook scripts are referenced
+	if !strings.Contains(content, "ptsd-context.sh") {
+		t.Error("settings.json missing ptsd-context.sh reference")
+	}
+	if !strings.Contains(content, "ptsd-gate.sh") {
+		t.Error("settings.json missing ptsd-gate.sh reference")
+	}
+	if !strings.Contains(content, "ptsd-track.sh") {
+		t.Error("settings.json missing ptsd-track.sh reference")
+	}
+}
+
+// TestInitHookScriptsContainPtsdBinary verifies hook scripts call ptsd with correct subcommands.
+func TestInitHookScriptsContainPtsdBinary(t *testing.T) {
+	dir := t.TempDir()
+	setupGitDir(t, dir)
+
+	if err := InitProject(dir, "MyApp"); err != nil {
+		t.Fatalf("InitProject failed: %v", err)
+	}
+
+	cases := []struct {
+		script  string
+		contain string
+	}{
+		{"ptsd-context.sh", "context --agent"},
+		{"ptsd-gate.sh", "hooks pre-tool-use"},
+		{"ptsd-track.sh", "hooks post-tool-use"},
+	}
+
+	for _, tc := range cases {
+		path := filepath.Join(dir, ".claude", "hooks", tc.script)
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read %s: %v", tc.script, err)
+		}
+		if !strings.Contains(string(data), tc.contain) {
+			t.Errorf("%s should contain %q, got: %s", tc.script, tc.contain, data)
+		}
+	}
+}
+
+// TestInitGeneratesCommitMsgHook verifies .git/hooks/commit-msg is created.
+func TestInitGeneratesCommitMsgHook(t *testing.T) {
+	dir := t.TempDir()
+	setupGitDir(t, dir)
+
+	if err := InitProject(dir, "MyApp"); err != nil {
+		t.Fatalf("InitProject failed: %v", err)
+	}
+
+	hookPath := filepath.Join(dir, ".git", "hooks", "commit-msg")
+	data, err := os.ReadFile(hookPath)
+	if err != nil {
+		t.Fatalf("commit-msg hook not found: %v", err)
+	}
+
+	if !strings.Contains(string(data), "validate-commit") {
+		t.Errorf("commit-msg hook should contain 'validate-commit', got: %s", data)
+	}
+
+	info, err := os.Stat(hookPath)
+	if err != nil {
+		t.Fatalf("stat hook: %v", err)
+	}
+	if info.Mode()&0111 == 0 {
+		t.Errorf("commit-msg hook is not executable, mode=%v", info.Mode())
+	}
+}

@@ -211,6 +211,82 @@ func TestRunHooks_Install_IOError_Exit4(t *testing.T) {
 	}
 }
 
+// --- extractFilePath tests (stdin JSON parsing edge cases) ---
+
+func TestExtractFilePath_ValidJSON(t *testing.T) {
+	input := `{"tool": "Edit", "file_path": "/home/user/project/src/main.go", "content": "..."}`
+	result := extractFilePathFromReader(strings.NewReader(input))
+	if result != "/home/user/project/src/main.go" {
+		t.Errorf("expected /home/user/project/src/main.go, got %q", result)
+	}
+}
+
+func TestExtractFilePath_EmptyInput(t *testing.T) {
+	result := extractFilePathFromReader(strings.NewReader(""))
+	if result != "" {
+		t.Errorf("expected empty string for empty input, got %q", result)
+	}
+}
+
+func TestExtractFilePath_NoFilePathKey(t *testing.T) {
+	input := `{"tool": "Bash", "command": "ls -la"}`
+	result := extractFilePathFromReader(strings.NewReader(input))
+	if result != "" {
+		t.Errorf("expected empty string when no file_path key, got %q", result)
+	}
+}
+
+func TestExtractFilePath_FilePathInContentBeforeKey(t *testing.T) {
+	// The content field contains "file_path" as text before the actual key
+	input := `{"tool": "Write", "content": "check the file_path value", "file_path": "/real/path.go"}`
+	result := extractFilePathFromReader(strings.NewReader(input))
+	// Should extract the real key, not the one inside content
+	if result != "/real/path.go" {
+		t.Errorf("expected /real/path.go, got %q", result)
+	}
+}
+
+func TestExtractFilePath_MalformedJSON(t *testing.T) {
+	input := `not json at all`
+	result := extractFilePathFromReader(strings.NewReader(input))
+	if result != "" {
+		t.Errorf("expected empty string for malformed input, got %q", result)
+	}
+}
+
+func TestExtractFilePath_FilePathWithSpaces(t *testing.T) {
+	input := `{"file_path": "/home/user/my project/file.go"}`
+	result := extractFilePathFromReader(strings.NewReader(input))
+	if result != "/home/user/my project/file.go" {
+		t.Errorf("expected path with spaces, got %q", result)
+	}
+}
+
+func TestExtractFilePath_FilePathWithEscapedQuote(t *testing.T) {
+	// Escaped quote in path — properly handles escape sequences
+	input := `{"file_path": "path/with\"quote"}`
+	result := extractFilePathFromReader(strings.NewReader(input))
+	if result != `path/with"quote` {
+		t.Errorf("expected 'path/with\"quote', got %q", result)
+	}
+}
+
+func TestExtractFilePath_NullValue(t *testing.T) {
+	input := `{"file_path": null}`
+	result := extractFilePathFromReader(strings.NewReader(input))
+	if result != "" {
+		t.Errorf("expected empty string for null value, got %q", result)
+	}
+}
+
+func TestExtractFilePath_WhitespaceAroundColon(t *testing.T) {
+	input := `{"file_path"  :  "/path/to/file.go"}`
+	result := extractFilePathFromReader(strings.NewReader(input))
+	if result != "/path/to/file.go" {
+		t.Errorf("expected /path/to/file.go, got %q", result)
+	}
+}
+
 // --- core hook behavior tests (BDD scenarios) ---
 //
 // These test core.ClassifyFile and core.ValidateCommit directly.

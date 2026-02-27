@@ -126,3 +126,110 @@ func TestAutoTrack_Idempotent(t *testing.T) {
 		t.Error("second call should also be no-op")
 	}
 }
+
+func TestAutoTrack_CreatesEntryForNewFeature(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "auth:in-progress")
+	ptsd := filepath.Join(dir, ".ptsd")
+
+	// Empty review-status — no entry for auth
+	os.WriteFile(filepath.Join(ptsd, "review-status.yaml"), []byte("features: {}\n"), 0644)
+
+	result, err := AutoTrack(dir, ".ptsd/bdd/auth.feature")
+	if err != nil {
+		t.Fatalf("AutoTrack: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result for new feature entry")
+	}
+	if result.Stage != "bdd" {
+		t.Errorf("expected stage=bdd for new entry, got %s", result.Stage)
+	}
+	if !result.Updated {
+		t.Error("expected updated=true for new entry")
+	}
+}
+
+func TestAutoTrack_PRDFileIgnored(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "auth:in-progress")
+	ptsd := filepath.Join(dir, ".ptsd")
+
+	os.WriteFile(filepath.Join(ptsd, "review-status.yaml"), []byte(
+		"features:\n  auth:\n    stage: prd\n    tests: absent\n    review: pending\n    issues: 0\n",
+	), 0644)
+
+	result, err := AutoTrack(dir, ".ptsd/docs/PRD.md")
+	if err != nil {
+		t.Fatalf("AutoTrack: %v", err)
+	}
+	if result != nil {
+		t.Errorf("expected nil result for PRD file, got: %+v", result)
+	}
+}
+
+func TestAutoTrack_ImplAdvancesStage(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "auth:in-progress")
+	ptsd := filepath.Join(dir, ".ptsd")
+
+	os.WriteFile(filepath.Join(ptsd, "review-status.yaml"), []byte(
+		"features:\n  auth:\n    stage: tests\n    tests: written\n    review: pending\n    issues: 0\n",
+	), 0644)
+
+	result, err := AutoTrack(dir, "internal/core/auth.go")
+	if err != nil {
+		t.Fatalf("AutoTrack: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+	if result.Stage != "impl" {
+		t.Errorf("expected stage=impl, got %s", result.Stage)
+	}
+}
+
+func TestAutoTrack_AbsolutePath(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "auth:in-progress")
+	ptsd := filepath.Join(dir, ".ptsd")
+
+	os.WriteFile(filepath.Join(ptsd, "review-status.yaml"), []byte(
+		"features:\n  auth:\n    stage: seed\n    tests: absent\n    review: pending\n    issues: 0\n",
+	), 0644)
+
+	absPath := filepath.Join(dir, ".ptsd", "bdd", "auth.feature")
+	result, err := AutoTrack(dir, absPath)
+	if err != nil {
+		t.Fatalf("AutoTrack: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result for absolute path")
+	}
+	if result.Stage != "bdd" {
+		t.Errorf("expected stage=bdd, got %s", result.Stage)
+	}
+}
+
+func TestAutoTrack_ManagementFilesIgnored(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "auth:in-progress")
+	ptsd := filepath.Join(dir, ".ptsd")
+
+	os.WriteFile(filepath.Join(ptsd, "review-status.yaml"), []byte("features: {}\n"), 0644)
+
+	ignored := []string{
+		".ptsd/tasks.yaml",
+		".ptsd/state.yaml",
+		".ptsd/ptsd.yaml",
+		".ptsd/features.yaml",
+		".ptsd/issues.yaml",
+		"CLAUDE.md",
+		".claude/settings.json",
+	}
+
+	for _, f := range ignored {
+		result, err := AutoTrack(dir, f)
+		if err != nil {
+			t.Fatalf("AutoTrack(%s): %v", f, err)
+		}
+		if result != nil {
+			t.Errorf("expected nil result for management file %q, got: %+v", f, result)
+		}
+	}
+}

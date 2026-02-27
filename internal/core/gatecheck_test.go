@@ -112,3 +112,117 @@ func TestGateCheck_AbsolutePath(t *testing.T) {
 		t.Errorf("expected absolute path to PRD.md to be allowed, got blocked: %s", result.Reason)
 	}
 }
+
+func TestGateCheck_ClaudeHooksAlwaysAllowed(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "auth:in-progress")
+
+	paths := []string{
+		".claude/hooks/ptsd-context.sh",
+		".claude/hooks/ptsd-gate.sh",
+		".claude/hooks/custom.sh",
+	}
+	for _, p := range paths {
+		result := GateCheck(dir, p)
+		if !result.Allowed {
+			t.Errorf("expected .claude/hooks/ path %q to be allowed, got blocked: %s", p, result.Reason)
+		}
+	}
+}
+
+func TestGateCheck_SkillsAlwaysAllowed(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "auth:in-progress")
+
+	result := GateCheck(dir, ".ptsd/skills/custom-skill.md")
+	if !result.Allowed {
+		t.Errorf("expected .ptsd/skills/ path to be allowed, got blocked: %s", result.Reason)
+	}
+}
+
+func TestGateCheck_UnknownNonCodeFileAllowed(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "auth:in-progress")
+
+	paths := []string{"README.md", "docs/guide.txt", ".gitignore", "Makefile"}
+	for _, p := range paths {
+		result := GateCheck(dir, p)
+		if !result.Allowed {
+			t.Errorf("expected non-code file %q to be allowed, got blocked: %s", p, result.Reason)
+		}
+	}
+}
+
+func TestGateCheck_FeatureIDSubstringCollision(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "auth:in-progress", "authorization:in-progress")
+	ptsd := filepath.Join(dir, ".ptsd")
+
+	// BDD exists for "auth" but NOT for "authorization"
+	os.WriteFile(filepath.Join(ptsd, "bdd", "auth.feature"), []byte("@feature:auth\nFeature: Auth\n"), 0644)
+
+	// File "authorization_test.go" should match feature "authorization", not "auth"
+	result := GateCheck(dir, "internal/core/authorization_test.go")
+	// If it matched "auth" (which has BDD), it would be allowed.
+	// It should match "authorization" (which has no BDD) and be blocked.
+	if result.Feature == "auth" {
+		t.Errorf("expected feature=authorization, got feature=auth (substring collision)")
+	}
+}
+
+func TestGateCheck_DeepNestedSeedFile(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "auth:in-progress")
+	ptsd := filepath.Join(dir, ".ptsd")
+
+	// Create PRD anchor for auth
+	os.MkdirAll(filepath.Join(ptsd, "docs"), 0755)
+	os.WriteFile(filepath.Join(ptsd, "docs", "PRD.md"), []byte("<!-- feature:auth -->\n## Auth\n"), 0644)
+
+	result := GateCheck(dir, ".ptsd/seeds/auth/data/nested/fixture.json")
+	if result.Feature != "auth" {
+		t.Errorf("expected feature=auth for deeply nested seed, got %q", result.Feature)
+	}
+	if !result.Allowed {
+		t.Errorf("expected deeply nested seed file to be allowed with PRD anchor, got blocked: %s", result.Reason)
+	}
+}
+
+func TestGateCheck_ImplBlockedWithoutTests(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "auth:in-progress")
+	ptsd := filepath.Join(dir, ".ptsd")
+
+	// Create empty state
+	os.WriteFile(filepath.Join(ptsd, "state.yaml"), []byte("features: {}\n"), 0644)
+
+	result := GateCheck(dir, "internal/core/auth.go")
+	if result.Allowed {
+		t.Error("expected impl write to be blocked when no tests exist for feature")
+	}
+	if result.Feature != "auth" {
+		t.Errorf("expected feature=auth, got %q", result.Feature)
+	}
+}
+
+func TestGateCheck_EmptyFeaturesAllowsAll(t *testing.T) {
+	dir := setupProjectWithFeatures(t)
+
+	// Test file that can't be mapped to any feature
+	result := GateCheck(dir, "internal/core/unknown_test.go")
+	if !result.Allowed {
+		t.Errorf("expected test file with no feature match to be allowed, got blocked: %s", result.Reason)
+	}
+}
+
+func TestGateCheck_IssuesYAMLAlwaysAllowed(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "auth:in-progress")
+
+	result := GateCheck(dir, ".ptsd/issues.yaml")
+	if !result.Allowed {
+		t.Errorf("expected .ptsd/issues.yaml to be always allowed, got blocked: %s", result.Reason)
+	}
+}
+
+func TestGateCheck_SettingsJSONAlwaysAllowed(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "auth:in-progress")
+
+	result := GateCheck(dir, ".claude/settings.json")
+	if !result.Allowed {
+		t.Errorf("expected .claude/settings.json to be always allowed, got blocked: %s", result.Reason)
+	}
+}
