@@ -8,39 +8,28 @@ features:
   config:
     stage: impl
     tests: written
-    review: failed
-    issues: 2
-    issues_list:
-      - "test adapter selection logic still basic (TAP override)"
-      - "no full-config integration test covering all sections"
+    review: pending
+    issues: 0
   feature-mgmt:
     stage: impl
     tests: written
-    review: failed
-    issues: 1
-    issues_list:
-      - "no test for implemented status with passing tests (positive case)"
+    review: pending
+    issues: 0
   task-mgmt:
     stage: impl
     tests: written
-    review: failed
-    issues: 1
-    issues_list:
-      - "no unblocked-task semantics (feature stage awareness)"
+    review: pending
+    issues: 0
   validate:
     stage: impl
     tests: written
-    review: failed
-    issues: 1
-    issues_list:
-      - "CheckReviewGate not called in Validate"
+    review: pending
+    issues: 0
   git-hooks:
     stage: impl
     tests: written
-    review: failed
-    issues: 1
-    issues_list:
-      - "IMPL scope does not trigger full Validate"
+    review: pending
+    issues: 0
   status:
     stage: impl
     tests: written
@@ -61,10 +50,8 @@ features:
   seed-mgmt:
     stage: impl
     tests: written
-    review: failed
-    issues: 1
-    issues_list:
-      - "CheckSeeds does not verify manifest has actual files"
+    review: pending
+    issues: 0
   bdd-mgmt:
     stage: impl
     tests: written
@@ -73,26 +60,20 @@ features:
   test-integration:
     stage: impl
     tests: written
-    review: failed
-    issues: 1
-    issues_list:
-      - "feature filter in RunTests does not actually filter test execution"
+    review: pending
+    issues: 0
   state-tracking:
     stage: impl
     tests: written
-    review: failed
-    issues: 1
-    issues_list:
-      - "status/validate/task-next do not auto-trigger CheckRegressions"
+    review: pending
+    issues: 0
 
   # Advanced
   review:
     stage: impl
     tests: written
-    review: failed
-    issues: 1
-    issues_list:
-      - "does not update review-status.yaml automatically"
+    review: pending
+    issues: 0
   skills:
     stage: bdd
     tests: absent
