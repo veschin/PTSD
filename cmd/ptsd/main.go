@@ -20,8 +20,7 @@ func main() {
 	}
 
 	if len(filteredArgs) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: ptsd <command> [options]\nRun 'ptsd help' for available commands.")
-		os.Exit(2)
+		os.Exit(cli.RunHelp(nil, agentMode))
 	}
 
 	cmd := filteredArgs[0]

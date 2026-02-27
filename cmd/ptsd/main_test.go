@@ -59,29 +59,22 @@ func TestMain_UnknownSubcommand(t *testing.T) {
 	}
 }
 
-// Scenario: Missing subcommand shows usage
-// Given an initialized project
+// Scenario: No arguments shows help
+// Given ptsd binary
 // When I run "ptsd"
-// Then exit code is 2
-// And output contains "usage:"
+// Then exit code is 0
+// And output contains command list
 func TestMain_MissingSubcommand(t *testing.T) {
 	bin := getPtsdBinary(t)
-	dir := setupOutputProject(t)
 	cmd := exec.Command(bin)
-	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 
-	if err == nil {
-		t.Fatalf("expected non-zero exit, got 0. output: %s", out)
+	if err != nil {
+		t.Fatalf("expected exit 0, got error: %s %s", err, out)
 	}
 
-	exitCode := cmd.ProcessState.ExitCode()
-	if exitCode != 2 {
-		t.Errorf("expected exit 2, got %d. output: %s", exitCode, out)
-	}
-
-	if !strings.Contains(string(out), "usage:") {
-		t.Errorf("expected usage in output, got: %s", out)
+	if !strings.Contains(string(out), "init") {
+		t.Errorf("expected help output with commands, got: %s", out)
 	}
 }
 
