@@ -50,6 +50,20 @@ git clone https://github.com/veschin/ptsd.git && cd ptsd
 go build -o ptsd ./cmd/ptsd
 ```
 
+**Update** — same command, always fetches latest:
+
+```bash
+go install github.com/veschin/ptsd/cmd/ptsd@latest
+```
+
+**Uninstall:**
+
+```bash
+rm $(which ptsd)                   # remove binary
+# per project — remove generated artifacts:
+rm -rf .ptsd/ .claude/ .git/hooks/pre-commit .git/hooks/commit-msg
+```
+
 ### Initialize
 
 ```bash
