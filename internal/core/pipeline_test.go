@@ -110,10 +110,10 @@ func TestMockPatternsDetectedInTestFiles(t *testing.T) {
 		createBDD(t, base, "user-auth")
 		createSeed(t, base, "user-auth")
 
-		// Create test file with mock pattern
+		// Create test file named for the feature with mock pattern
 		testDir := filepath.Join(base, "..", "internal", "auth")
 		os.MkdirAll(testDir, 0755)
-		os.WriteFile(filepath.Join(testDir, "auth_test.go"), []byte(`package auth
+		os.WriteFile(filepath.Join(testDir, "user-auth_test.go"), []byte(`package auth
 import "testing"
 func TestAuth(t *testing.T) {
 	vi.mock("something") // mock pattern
@@ -172,10 +172,10 @@ func TestValidateCatchesReviewGateFailure(t *testing.T) {
 			"features:\n  user-auth:\n    stage: prd\n    hashes: {}\n    scores:\n      prd:\n        score: 3\n        at: \"2026-02-26T10:00:00Z\"\n",
 		), 0644)
 
-		// Create test file so other checks pass
+		// Create test file named for the feature so other checks pass
 		testDir := filepath.Join(base, "..", "internal", "auth")
 		os.MkdirAll(testDir, 0755)
-		os.WriteFile(filepath.Join(testDir, "auth_test.go"), []byte("package auth\nimport \"testing\"\nfunc TestAuth(t *testing.T) {}\n"), 0644)
+		os.WriteFile(filepath.Join(testDir, "user-auth_test.go"), []byte("package auth\nimport \"testing\"\nfunc TestAuth(t *testing.T) {}\n"), 0644)
 	})
 
 	errors, err := Validate(dir)
@@ -203,10 +203,10 @@ func TestValidatePassesWithSufficientReviewScore(t *testing.T) {
 			"features:\n  user-auth:\n    stage: prd\n    hashes: {}\n    scores:\n      prd:\n        score: 8\n        at: \"2026-02-26T10:00:00Z\"\n",
 		), 0644)
 
-		// Create test file so other checks pass
+		// Create test file named for the feature so other checks pass
 		testDir := filepath.Join(base, "..", "internal", "auth")
 		os.MkdirAll(testDir, 0755)
-		os.WriteFile(filepath.Join(testDir, "auth_test.go"), []byte("package auth\nimport \"testing\"\nfunc TestAuth(t *testing.T) {}\n"), 0644)
+		os.WriteFile(filepath.Join(testDir, "user-auth_test.go"), []byte("package auth\nimport \"testing\"\nfunc TestAuth(t *testing.T) {}\n"), 0644)
 	})
 
 	errors, err := Validate(dir)
@@ -281,10 +281,10 @@ func setupCleanProject(t *testing.T) string {
 	createBDD(t, base, "user-auth")
 	createSeed(t, base, "user-auth")
 
-	// Create test file (no mocks)
+	// Create test file named for the feature (no mocks)
 	testDir := filepath.Join(dir, "internal", "auth")
 	os.MkdirAll(testDir, 0755)
-	os.WriteFile(filepath.Join(testDir, "auth_test.go"), []byte(`package auth
+	os.WriteFile(filepath.Join(testDir, "user-auth_test.go"), []byte(`package auth
 import "testing"
 func TestAuth(t *testing.T) {}
 `), 0644)
@@ -350,9 +350,9 @@ func createSeed(t *testing.T, base, featureID string) {
 
 func assertHasError(t *testing.T, errors []ValidationError, feature, category, contains string) {
 	for _, e := range errors {
-		if (feature == "" || e.Feature == feature) && e.Category == category {
+		if (feature == "" || e.Feature == feature) && e.Category == category && strings.Contains(e.Message, contains) {
 			return
 		}
 	}
-	t.Errorf("expected error with feature=%q category=%q, got: %v", feature, category, errors)
+	t.Errorf("expected error with feature=%q category=%q contains=%q, got: %v", feature, category, contains, errors)
 }

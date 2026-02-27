@@ -123,11 +123,11 @@ func saveReviewStatus(projectDir string, entries map[string]ReviewStatusEntry) e
 }
 
 var validReviewStages = map[string]bool{
-	"prd":  true,
-	"seed": true,
-	"bdd":  true,
-	"test": true,
-	"impl": true,
+	"prd":   true,
+	"seed":  true,
+	"bdd":   true,
+	"tests": true,
+	"impl":  true,
 }
 
 func RecordReview(projectDir string, featureID string, stage string, score int) error {
@@ -136,7 +136,7 @@ func RecordReview(projectDir string, featureID string, stage string, score int) 
 	}
 
 	if !validReviewStages[stage] {
-		return fmt.Errorf("err:user invalid stage %q: must be prd|seed|bdd|test|impl", stage)
+		return fmt.Errorf("err:user invalid stage %q: must be prd|seed|bdd|tests|impl", stage)
 	}
 
 	state, err := LoadState(projectDir)
@@ -192,10 +192,8 @@ func RecordReview(projectDir string, featureID string, stage string, score int) 
 		entry.IssuesList = nil
 	} else {
 		entry.Review = "failed"
-		if entry.Issues == 0 {
-			entry.Issues = 1
-			entry.IssuesList = []string{fmt.Sprintf("score %d below min %d at %s stage", score, cfg.Review.MinScore, stage)}
-		}
+		entry.Issues = 1
+		entry.IssuesList = []string{fmt.Sprintf("score %d below min %d at %s stage", score, cfg.Review.MinScore, stage)}
 	}
 
 	rs[featureID] = entry
@@ -239,7 +237,8 @@ func RecordReview(projectDir string, featureID string, stage string, score int) 
 func CheckReviewGate(projectDir string, featureID string, stage string) (bool, error) {
 	cfg, err := LoadConfig(projectDir)
 	if err != nil {
-		return false, err
+		// No config means default min_score=7
+		cfg = &Config{Review: ReviewConfig{MinScore: 7}}
 	}
 
 	state, err := LoadState(projectDir)

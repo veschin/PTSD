@@ -219,6 +219,42 @@ func TestRecordReviewCreatesReviewStatusIfMissing(t *testing.T) {
 	}
 }
 
+func TestCheckReviewGateNoConfig(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "user-auth:planned")
+	ptsdDir := filepath.Join(dir, ".ptsd")
+
+	// No ptsd.yaml — CheckReviewGate must fall back to default min_score=7.
+
+	// Score 8 >= 7 default: should pass.
+	statePath := filepath.Join(ptsdDir, "state.yaml")
+	stateContent := "features:\n  user-auth:\n    stage: prd\n    hashes: {}\n    scores:\n      prd:\n        score: 8\n        at: \"2026-02-26T10:00:00Z\"\n"
+	if err := os.WriteFile(statePath, []byte(stateContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	passed, err := CheckReviewGate(dir, "user-auth", "prd")
+	if err != nil {
+		t.Fatalf("CheckReviewGate should not error without config, got: %v", err)
+	}
+	if !passed {
+		t.Error("expected gate to pass (score 8 >= default min 7), got passed=false")
+	}
+
+	// Score 5 < 7 default: should fail.
+	stateContent = "features:\n  user-auth:\n    stage: prd\n    hashes: {}\n    scores:\n      prd:\n        score: 5\n        at: \"2026-02-26T10:00:00Z\"\n"
+	if err := os.WriteFile(statePath, []byte(stateContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	passed, err = CheckReviewGate(dir, "user-auth", "prd")
+	if err != nil {
+		t.Fatalf("CheckReviewGate should not error without config, got: %v", err)
+	}
+	if passed {
+		t.Error("expected gate to block (score 5 < default min 7), got passed=true")
+	}
+}
+
 func TestAutoRedoTaskOnLowScore(t *testing.T) {
 	dir := setupProjectWithFeatures(t, "user-auth:planned")
 	ptsdDir := filepath.Join(dir, ".ptsd")

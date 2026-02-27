@@ -81,6 +81,11 @@ func Validate(projectDir string) ([]ValidationError, error) {
 		}
 		passed, err := CheckReviewGate(projectDir, f.ID, fs.Stage)
 		if err != nil {
+			errors = append(errors, ValidationError{
+				Feature:  f.ID,
+				Category: "pipeline",
+				Message:  "review gate check failed: " + err.Error(),
+			})
 			continue
 		}
 		if !passed {
@@ -124,7 +129,7 @@ func hasTestsForFeature(projectDir string, featureID string, state *State) bool 
 		}
 	}
 
-	// Fallback: walk project for test files (global check)
+	// Fallback: walk project for test files specific to this feature
 	found := false
 	filepath.Walk(projectDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -133,7 +138,9 @@ func hasTestsForFeature(projectDir string, featureID string, state *State) bool 
 		if info.IsDir() && strings.Contains(path, ".ptsd") {
 			return filepath.SkipDir
 		}
-		if strings.HasSuffix(path, "_test.go") || strings.HasSuffix(path, ".test.ts") || strings.HasSuffix(path, ".test.js") {
+		base := filepath.Base(path)
+		if strings.Contains(base, featureID) &&
+			(strings.HasSuffix(path, "_test.go") || strings.HasSuffix(path, ".test.ts") || strings.HasSuffix(path, ".test.js")) {
 			found = true
 			return filepath.SkipAll
 		}
