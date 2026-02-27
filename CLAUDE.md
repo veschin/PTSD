@@ -1,11 +1,25 @@
-# PTSD Development Guide
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What Is This
 
 PTSD (PRD-Test-Seed Dashboard) — CLI tool enforcing structured AI development.
-Go + Bubbletea. Single binary. Zero runtime deps.
+Go, single binary, zero third-party dependencies (stdlib only, no `go.sum`).
 
 **This project dogfoods itself.** All PTSD practices apply here: features, pipeline, seeds, BDD, reviews.
+
+## Build & Test Commands
+
+```bash
+go build ./cmd/ptsd/...           # build binary
+go test ./...                     # run all tests
+go test ./internal/core/...       # run core package tests
+go test -run TestValidate ./internal/core/  # run a single test
+go test -v -run TestName ./path/  # verbose single test
+```
+
+No Makefile, no linter config. Standard Go tooling only.
 
 ## Architecture
 
@@ -14,10 +28,62 @@ cmd/ptsd/main.go → internal/cli/* → internal/core/* → internal/yaml/*
                                    → internal/render/*
 ```
 
-- `core/` — domain logic, zero TUI imports
-- `render/` — Bubbletea output, zero domain logic
-- `cli/` — glue: args → core → render
-- `yaml/` — hand-rolled parser, leaf package
+- `core/` — domain logic, zero TUI imports. All YAML parsing is inline here (line-by-line `strings.Split`/`HasPrefix`/`TrimPrefix`, no third-party parser)
+- `render/` — output formatting. Only `AgentRenderer` exists; HumanRenderer (Bubbletea TUI) is not yet implemented
+- `cli/` — glue: args → core → render. One file per command, all share signature `func RunX(args []string, agentMode bool) int`
+- `yaml/` — declared as leaf package but currently empty; all parsing lives in `core/`
+
+### CLI Command Registration
+
+`main.go` is a flat `switch cmd` dispatcher (~75 lines). No cobra, no flag package. Arg parsing is manual loop-over-args. To add a new command:
+1. New `case "cmd-name":` in `main.go`
+2. New `cli/cmd-name.go` with `func RunCmdName(args []string, agentMode bool) int`
+
+### Error Protocol
+
+Errors flow as `fmt.Errorf("err:category message")`. The `coreError()` helper in `cli/helpers.go` parses this prefix to route to exit codes:
+- `err:validation` / `err:pipeline` → exit 1
+- `err:user` → exit 2
+- `err:config` → exit 3
+- `err:io` → exit 4
+- `err:test` → exit 5
+
+### Hook Auto-Wiring
+
+`ptsd init` generates `.claude/settings.json` that wires Claude Code hooks:
+- `SessionStart` + `UserPromptSubmit` → `ptsd context --agent` (injects pipeline state)
+- `PreToolUse` (Edit|Write) → `ptsd hooks pre-tool-use` → `GateCheck()` (blocks pipeline-violating writes)
+- `PostToolUse` (Edit|Write) → `ptsd hooks post-tool-use` → `AutoTrack()` (auto-advances feature stage)
+
+Hooks read Claude Code's JSON from stdin, extract `file_path` via string search (no JSON decoder), return exit 2 to block or 0 to allow.
+
+### Key Domain Types
+
+- `core/registry.go` — `Feature` struct, CRUD on `.ptsd/features.yaml`
+- `core/state.go` — `State`/`FeatureState` with hashes, scores, test mappings; `CheckRegressions()` compares SHA256 hashes (mutates state on read)
+- `core/pipeline.go` — `Validate()` orchestrates all checks; `ClassifyFile()` maps paths to scopes
+- `core/context.go` — `BuildContext()` combines features + review-status + tasks → emits `next`/`blocked`/`done`/`task` lines
+- `core/review.go` — `ReviewStatusEntry`, `RecordReview()`, `CheckReviewGate()`
+
+### Feature ID as Canonical Link
+
+Everything resolves by feature ID: test files map via `inferFeatureFromTestFile()` (substring matching), BDD files are `<id>.feature`, seeds are `seeds/<id>/`, PRD anchors are `<!-- feature:<id> -->`.
+
+`planned` and `deferred` features are excluded from all pipeline checks.
+
+## Testing Patterns
+
+Tests use real files, real CLI, temp directories. No mocks for internal code.
+
+**Central test helper** (`internal/core/test_helper_test.go`):
+```go
+func setupProjectWithFeatures(t *testing.T, features ...string) string
+// Creates temp dir with full .ptsd/ structure. Features are "id:status" strings.
+```
+
+**Integration tests** (`cmd/ptsd/main_test.go`): build real binary via `exec.Command("go", "build", "-o", bin, ".")`, run in temp project dir, assert on stdout/stderr/exit codes.
+
+**Assertion helper**: `assertHasError(t, errors, feature, category, contains)` — searches error slice for matching feature+category+substring.
 
 ## Project Structure
 
@@ -59,7 +125,7 @@ Review stored in `.ptsd/state.yaml`. Review status in `.ptsd/review-status.yaml`
 ## Rules
 
 1. **No mocks.** Tests prove real behavior. Mock only external integrations.
-2. **No garbage files.** Think before creating. Every file has a purpose and a feature link.
+2. **No garbage files.** Every file has a purpose and a feature link.
 3. **No hiding errors.** If something fails, explain why. Never suppress.
 4. **No over-engineering.** Minimum code for current task. No premature abstractions.
 5. **Commit format:** `[SCOPE] type: message`. Scopes: PRD, SEED, BDD, TEST, IMPL, TASK, STATUS. Types: feat, add, fix, refactor, remove, update.
@@ -79,39 +145,24 @@ On EVERY session start, BEFORE any work:
 
 ## Mandatory Progress Tracking
 
-LLM MUST record progress immediately as it happens. Not at the end, not in batch, not "later".
-
-### When to update review-status.yaml
-
-Update IMMEDIATELY when any of these happen:
-- Test written → `tests: written`
-- Test reviewed → `review: passed` or `failed` + `issues`/`issues_list`
-- Implementation written → `stage: impl`, `review: pending`
-- Implementation reviewed → `review: passed` or `failed`
-- Issue fixed → remove from `issues_list`, decrement `issues`
-- Stage advanced → update `stage`
-
-Do NOT batch updates. Do NOT defer to end of session. Every state change = immediate file update.
+Record progress IMMEDIATELY as it happens. Not at end, not in batch. Every state change = immediate file update to `review-status.yaml`, `state.yaml`, or `tasks.yaml`.
 
 ### review-status.yaml format
 
-File always contains ALL registered features. Fields:
+File contains ALL registered features. Fields:
 - `stage`: `prd` | `seed` | `bdd` | `tests` | `impl`
 - `tests`: `absent` | `written`
 - `review`: `pending` | `passed` | `failed`
 - `issues`: int (0 = clean)
 - `issues_list`: string[] (only when issues > 0)
 
-On review: set verdict, count issues, list them. On fix: remove from list, decrement. At 0: set passed, drop list.
+Update triggers: test written, review done, stage advanced, issue fixed.
+On fix: remove from `issues_list`, decrement. At 0: set `passed`, drop `issues_list`.
 
 ### Bootstrapping phase
 
-**ptsd CLI does not exist yet.** Track manually:
-- `.ptsd/state.yaml` — feature stages, hashes, scores
-- `.ptsd/review-status.yaml` — review verdicts per feature
-- `.ptsd/tasks.yaml` — task status updates
-
-Once ptsd CLI is operational — ALL tracking goes exclusively through `ptsd` commands. No direct file edits for state.
+**ptsd CLI does not exist yet.** Track manually via direct file edits.
+Once ptsd CLI is operational — ALL tracking goes exclusively through `ptsd` commands.
 
 ## Workflow
 
@@ -131,7 +182,7 @@ ptsd classifies staged files by path → pipeline stage. On commit:
 
 ## Output Modes
 
-- **Human mode** (default): interactive TUI — tables, colors, navigation
+- **Human mode** (default): interactive TUI (not yet implemented — returns AgentRenderer)
 - **Agent mode** (`--agent`): ultra-compact, zero decoration, exact file:line coordinates
 
 LLM ALWAYS uses `--agent`. Error format: `err:<category> <message>` (single line, no stack traces).
@@ -147,14 +198,6 @@ Categories: pipeline, config, io, user, test.
 | 3 | Config error |
 | 4 | I/O error |
 | 5 | Test runner failure |
-
-## Testing
-
-```bash
-go test ./...
-```
-
-Tests use real files, real CLI, temp directories. No mocks for internal code.
 
 ## Features (17 total)
 

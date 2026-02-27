@@ -41,3 +41,9 @@ tasks:
     status: DONE
     priority: A
     description: "Create cmd/ptsd/main.go with full routing table, --agent flag"
+  - id: T-1
+    feature: init
+    title: "ptsd init works on already initialized projects (re-init hooks)"
+    status: TODO
+    priority: A
+    description: "InitProject refuses re-init (.ptsd already exists). Add partial re-init: regenerate .claude/settings.json, .claude/hooks/*.sh, .git/hooks/pre-commit, .git/hooks/commit-msg, CLAUDE.md without touching .ptsd/ contents. Either via --hooks flag or auto-detect."
