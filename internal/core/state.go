@@ -317,6 +317,61 @@ type ProjectStatusResult struct {
 	Regressions []RegressionWarning
 }
 
+// ComputeStageFromArtifacts determines a feature's pipeline stage by checking on-disk artifacts.
+func ComputeStageFromArtifacts(projectDir, featureID string) string {
+	// Check from latest to earliest stage
+	// impl: any source code files exist for this feature (walk is expensive, check state test_status)
+	stateData, err := os.ReadFile(filepath.Join(projectDir, ".ptsd", "state.yaml"))
+	if err == nil && strings.Contains(string(stateData), featureID) {
+		if parseTestStatus(string(stateData), featureID) == "passing" {
+			return "impl"
+		}
+	}
+
+	// tests: test files exist
+	hasTests := false
+	filepath.Walk(projectDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			if info != nil && info.IsDir() && (strings.Contains(path, ".ptsd") || strings.Contains(path, ".git")) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		base := filepath.Base(path)
+		if strings.Contains(base, featureID) && strings.HasSuffix(path, "_test.go") {
+			hasTests = true
+			return filepath.SkipAll
+		}
+		return nil
+	})
+	if hasTests {
+		return "tests"
+	}
+
+	// bdd
+	bddPath := filepath.Join(projectDir, ".ptsd", "bdd", featureID+".feature")
+	if _, err := os.Stat(bddPath); err == nil {
+		return "bdd"
+	}
+
+	// seed
+	seedPath := filepath.Join(projectDir, ".ptsd", "seeds", featureID, "seed.yaml")
+	if _, err := os.Stat(seedPath); err == nil {
+		return "seed"
+	}
+
+	// prd anchor
+	prdPath := filepath.Join(projectDir, ".ptsd", "docs", "PRD.md")
+	if data, err := os.ReadFile(prdPath); err == nil {
+		anchor := "<!-- feature:" + featureID + " -->"
+		if strings.Contains(string(data), anchor) {
+			return "prd"
+		}
+	}
+
+	return ""
+}
+
 // ProjectStatus returns current feature states and auto-triggers regression detection.
 func ProjectStatus(projectDir string) (ProjectStatusResult, error) {
 	state, err := LoadState(projectDir)
@@ -330,6 +385,25 @@ func ProjectStatus(projectDir string) (ProjectStatusResult, error) {
 	state, err = LoadState(projectDir)
 	if err != nil {
 		return ProjectStatusResult{}, err
+	}
+
+	// Fill in missing stages from on-disk artifacts
+	features, _ := loadFeatures(projectDir)
+	for _, f := range features {
+		fs, ok := state.Features[f.ID]
+		if !ok || fs.Stage == "" {
+			computed := ComputeStageFromArtifacts(projectDir, f.ID)
+			if computed != "" {
+				if !ok {
+					fs = FeatureState{
+						Hashes: make(map[string]string),
+						Scores: make(map[string]ScoreEntry),
+					}
+				}
+				fs.Stage = computed
+				state.Features[f.ID] = fs
+			}
+		}
 	}
 
 	return ProjectStatusResult{Features: state.Features, Regressions: regressions}, nil

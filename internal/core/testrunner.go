@@ -191,9 +191,13 @@ func RunTests(projectDir string, featureFilter string) (TestResults, error) {
 		}
 	}
 
-	// Override with TAP parse if we got TAP-like output
-	if strings.Contains(string(output), "ok ") || strings.Contains(string(output), "not ok ") {
-		results = parseTAPOutput(string(output))
+	// Detect Go test output by presence of === RUN or --- PASS/FAIL markers
+	outStr := string(output)
+	if strings.Contains(outStr, "=== RUN") || strings.Contains(outStr, "--- PASS:") || strings.Contains(outStr, "--- FAIL:") {
+		results = parseGoTestOutput(outStr)
+	} else if strings.Contains(outStr, "ok ") || strings.Contains(outStr, "not ok ") {
+		// Override with TAP parse if we got TAP-like output
+		results = parseTAPOutput(outStr)
 	}
 
 	// Update state with results
@@ -225,6 +229,27 @@ func parseTAPOutput(output string) TestResults {
 		} else if strings.HasPrefix(line, "# Failed at ") {
 			failure := strings.TrimPrefix(line, "# Failed at ")
 			results.Failures = append(results.Failures, failure)
+		}
+	}
+	return results
+}
+
+func parseGoTestOutput(output string) TestResults {
+	var results TestResults
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "--- PASS:") {
+			results.Total++
+			results.Passed++
+		} else if strings.HasPrefix(line, "--- FAIL:") {
+			results.Total++
+			results.Failed++
+			// Extract test name
+			name := strings.TrimPrefix(line, "--- FAIL: ")
+			if idx := strings.Index(name, " ("); idx > 0 {
+				name = name[:idx]
+			}
+			results.Failures = append(results.Failures, name)
 		}
 	}
 	return results

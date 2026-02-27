@@ -71,6 +71,26 @@ func RunSeed(args []string, agentMode bool) int {
 		return 2
 	}
 	switch args[0] {
+	case "init":
+		if len(args) < 2 {
+			fmt.Fprintln(os.Stderr, "err:user usage: ptsd seed init <feature>")
+			return 2
+		}
+		featureID := args[1]
+		dir, err := os.Getwd()
+		if err != nil {
+			return coreError(agentMode, err)
+		}
+		err = core.InitSeed(dir, featureID)
+		if err != nil {
+			return coreError(agentMode, err)
+		}
+		if agentMode {
+			fmt.Printf("seed initialized: %s\n", featureID)
+		} else {
+			fmt.Printf("Seed directory initialized for feature %s\n", featureID)
+		}
+		return 0
 	case "add":
 		if len(args) < 3 {
 			fmt.Fprintln(os.Stderr, "err:user usage: ptsd seed add <feature> <file> [type] [description]")

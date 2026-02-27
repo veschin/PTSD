@@ -20,10 +20,16 @@ func Validate(projectDir string) ([]ValidationError, error) {
 
 	var errors []ValidationError
 
-	// Check PRD anchors
+	// Check PRD anchors (CheckPRDAnchors includes all features; filter planned/deferred here)
+	plannedOrDeferred := make(map[string]bool)
+	for _, f := range features {
+		if f.Status == "planned" || f.Status == "deferred" {
+			plannedOrDeferred[f.ID] = true
+		}
+	}
 	prdErrors, _ := CheckPRDAnchors(projectDir)
 	for _, e := range prdErrors {
-		if e.Type == "missing-anchor" {
+		if e.Type == "missing-anchor" && !plannedOrDeferred[e.FeatureID] {
 			errors = append(errors, ValidationError{
 				Feature:  e.FeatureID,
 				Category: "pipeline",
@@ -32,8 +38,9 @@ func Validate(projectDir string) ([]ValidationError, error) {
 		}
 	}
 
-	// Load state for per-feature test check
+	// Load state and review-status for per-feature stage check
 	state, _ := LoadState(projectDir)
+	reviewStatus, _ := loadReviewStatus(projectDir)
 
 	// Check pipeline consistency per feature
 	for _, f := range features {
@@ -55,7 +62,12 @@ func Validate(projectDir string) ([]ValidationError, error) {
 			})
 		}
 
-		if hasBDD {
+		// Only require tests if feature is past bdd stage
+		currentStage := ""
+		if rs, ok := reviewStatus[f.ID]; ok {
+			currentStage = rs.Stage
+		}
+		if hasBDD && currentStage != "prd" && currentStage != "seed" && currentStage != "bdd" {
 			hasTests := hasTestsForFeature(projectDir, f.ID, state)
 			if !hasTests {
 				errors = append(errors, ValidationError{

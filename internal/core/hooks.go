@@ -26,16 +26,68 @@ var validCommitTypes = map[string]bool{
 	"update":   true,
 }
 
+func ptsdBinaryPath() string {
+	if exe, err := os.Executable(); err == nil {
+		return exe
+	}
+	return "ptsd"
+}
+
 func GeneratePreCommitHook(projectDir string) error {
 	hookDir := filepath.Join(projectDir, ".git", "hooks")
 	if err := os.MkdirAll(hookDir, 0755); err != nil {
 		return fmt.Errorf("err:io %w", err)
 	}
 
-	hookContent := "#!/bin/sh\nptsd validate\n"
+	bin := ptsdBinaryPath()
+	hookContent := "#!/bin/sh\n" + bin + " validate\n"
 	hookPath := filepath.Join(hookDir, "pre-commit")
 	if err := os.WriteFile(hookPath, []byte(hookContent), 0755); err != nil {
 		return fmt.Errorf("err:io %w", err)
+	}
+
+	return nil
+}
+
+func GenerateCommitMsgHook(projectDir string) error {
+	hookDir := filepath.Join(projectDir, ".git", "hooks")
+	if err := os.MkdirAll(hookDir, 0755); err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+
+	bin := ptsdBinaryPath()
+	hookContent := "#!/bin/sh\n" + bin + " hooks validate-commit --msg-file \"$1\"\n"
+	hookPath := filepath.Join(hookDir, "commit-msg")
+	if err := os.WriteFile(hookPath, []byte(hookContent), 0755); err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+
+	return nil
+}
+
+func ValidateCommitFromFile(projectDir, msgFile string) error {
+	data, err := os.ReadFile(msgFile)
+	if err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+
+	msg := strings.TrimSpace(string(data))
+	if msg == "" {
+		return fmt.Errorf("err:git empty commit message")
+	}
+
+	// Parse and validate format only (no staged file classification — git handles that in pre-commit)
+	scope, commitType, _, err := ParseCommitMessage(msg)
+	if err != nil {
+		return err
+	}
+
+	if !validScopes[scope] {
+		return fmt.Errorf("err:git unknown scope %s", scope)
+	}
+
+	if commitType != "" && !validCommitTypes[commitType] {
+		return fmt.Errorf("err:git invalid commit type %q: must be feat|add|fix|refactor|remove|update", commitType)
 	}
 
 	return nil

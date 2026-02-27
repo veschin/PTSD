@@ -215,8 +215,8 @@ func TestInitInstallsPreCommitHook(t *testing.T) {
 		t.Fatalf("pre-commit hook not found: %v", err)
 	}
 
-	if !strings.Contains(string(data), "ptsd validate") {
-		t.Errorf("pre-commit hook does not contain 'ptsd validate':\n%s", data)
+	if !strings.Contains(string(data), "validate") {
+		t.Errorf("pre-commit hook does not contain 'validate':\n%s", data)
 	}
 
 	// Check it is executable.

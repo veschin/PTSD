@@ -29,7 +29,7 @@ func CheckPRDAnchors(projectDir string) ([]PRDError, error) {
 		return nil, err
 	}
 
-	features, err := readFeatureIDs(projectDir)
+	features, err := readAllFeatureIDs(projectDir)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,24 @@ func extractAnchors(projectDir string) ([]string, error) {
 	return anchors, nil
 }
 
-func readFeatureIDs(projectDir string) ([]string, error) {
+func readAllFeatureIDs(projectDir string) ([]string, error) {
+	featPath := filepath.Join(projectDir, ".ptsd", "features.yaml")
+	data, err := os.ReadFile(featPath)
+	if err != nil {
+		return nil, fmt.Errorf("err:io %w", err)
+	}
+
+	var ids []string
+	for _, line := range strings.Split(string(data), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "- id: ") {
+			ids = append(ids, strings.TrimPrefix(trimmed, "- id: "))
+		}
+	}
+	return ids, nil
+}
+
+func readActiveFeatureIDs(projectDir string) ([]string, error) {
 	featPath := filepath.Join(projectDir, ".ptsd", "features.yaml")
 	data, err := os.ReadFile(featPath)
 	if err != nil {
@@ -143,7 +160,6 @@ func readFeatureIDs(projectDir string) ([]string, error) {
 		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(trimmed, "- id: ") {
 			id := strings.TrimPrefix(trimmed, "- id: ")
-			// Check subsequent indented lines for status planned/deferred
 			status := ""
 			for j := i + 1; j < len(lines); j++ {
 				next := strings.TrimSpace(lines[j])

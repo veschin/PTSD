@@ -99,8 +99,8 @@ func TestRunHooks_Install_CreatesHookFile(t *testing.T) {
 	}
 
 	content := string(data)
-	if !strings.Contains(content, "ptsd validate") {
-		t.Errorf("expected hook to contain 'ptsd validate', got: %q", content)
+	if !strings.Contains(content, "validate") {
+		t.Errorf("expected hook to contain 'validate', got: %q", content)
 	}
 }
 
