@@ -12,7 +12,7 @@ func getPtsdBinary(t *testing.T) string {
 	dir := t.TempDir()
 	bin := filepath.Join(dir, "ptsd")
 	cmd := exec.Command("go", "build", "-o", bin, ".")
-	cmd.Dir = "/home/veschin/work/ptsd/cmd/ptsd"
+	cmd.Dir = filepath.Join("..", "..", "cmd", "ptsd")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("failed to build ptsd: %s %s", err, out)
 	}

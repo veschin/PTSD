@@ -33,13 +33,13 @@ func RunValidate(args []string, agentMode bool) int {
 			if feature == "" {
 				feature = "-"
 			}
-			fmt.Printf("err:%s %s: %s\n", ve.Category, feature, ve.Message)
+			fmt.Fprintf(os.Stderr, "err:%s %s: %s\n", ve.Category, feature, ve.Message)
 		} else {
 			feature := ve.Feature
 			if feature == "" {
 				feature = "(global)"
 			}
-			fmt.Printf("[%s] %s: %s\n", ve.Category, feature, ve.Message)
+			fmt.Fprintf(os.Stderr, "[%s] %s: %s\n", ve.Category, feature, ve.Message)
 		}
 	}
 

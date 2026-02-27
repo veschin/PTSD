@@ -182,7 +182,7 @@ func RunTest(args []string, agentMode bool) int {
 			Failed:   results.Failed,
 			Failures: results.Failures,
 		}
-		r := &render.AgentRenderer{}
+		r := newRenderer(agentMode)
 		fmt.Println(r.RenderTestResults(view))
 		if results.Failed > 0 {
 			return 5

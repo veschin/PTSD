@@ -30,11 +30,7 @@ func RunStatus(args []string, agentMode bool) int {
 
 		// Print regression warnings before status line.
 		for _, w := range result.Regressions {
-			category := "pipeline"
-			if w.Severity == "error" {
-				category = "pipeline"
-			}
-			fmt.Fprintf(os.Stderr, "err:%s regression %s: %s\n", category, w.Feature, w.Message)
+			fmt.Fprintf(os.Stderr, "err:pipeline regression %s: %s\n", w.Feature, w.Message)
 		}
 
 		fmt.Println(r.RenderStatus(data))

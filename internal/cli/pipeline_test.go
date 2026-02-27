@@ -188,7 +188,7 @@ func TestRunSeedAddSeedNotInitialized(t *testing.T) {
 
 	// No seed.yaml initialized for "my-feat" — err:validation → exit 1
 	var code int
-	out := captureStdout(t, func() {
+	out := captureStderr(t, func() {
 		code = RunSeed([]string{"add", "my-feat", srcFile}, true)
 	})
 	if code != 1 {
@@ -260,7 +260,7 @@ func TestRunBddAddWithoutSeed(t *testing.T) {
 	// No seed initialized — err:pipeline → exit 1
 
 	var code int
-	out := captureStdout(t, func() {
+	out := captureStderr(t, func() {
 		code = RunBdd([]string{"add", "my-feat"}, true)
 	})
 	if code != 1 {
@@ -313,7 +313,7 @@ func TestRunBddListNonexistentFeature(t *testing.T) {
 
 	// "ghost" has no .feature file — ShowBDD returns err:validation → exit 1
 	var code int
-	out := captureStdout(t, func() {
+	out := captureStderr(t, func() {
 		code = RunBdd([]string{"list", "ghost"}, true)
 	})
 	if code != 1 {
@@ -386,7 +386,7 @@ func TestRunTestMapBDDNotFound(t *testing.T) {
 
 	// BDD file does not exist — err:io → exit 4
 	var code int
-	out := captureStdout(t, func() {
+	out := captureStderr(t, func() {
 		code = RunTest([]string{"map", ".ptsd/bdd/ghost.feature", "some_test.go"}, true)
 	})
 	if code != 4 {
@@ -620,7 +620,7 @@ func TestRunSeedHumanModeError(t *testing.T) {
 
 	// No seed initialized — err:validation → exit 1 in human mode too
 	var code int
-	out := captureStdout(t, func() {
+	out := captureStderr(t, func() {
 		code = RunSeed([]string{"add", "my-feat", srcFile}, false)
 	})
 	if code != 1 {
@@ -661,7 +661,7 @@ func TestRunBddHumanModeError(t *testing.T) {
 
 	// No seed initialized — err:pipeline → exit 1 in human mode too
 	var code int
-	out := captureStdout(t, func() {
+	out := captureStderr(t, func() {
 		code = RunBdd([]string{"add", "my-feat"}, false)
 	})
 	if code != 1 {
@@ -708,7 +708,7 @@ func TestRunTestHumanModeError(t *testing.T) {
 	}
 
 	var code int
-	out := captureStdout(t, func() {
+	out := captureStderr(t, func() {
 		code = RunTest([]string{"run"}, false)
 	})
 	if code != 3 {
@@ -816,7 +816,7 @@ Catalog section
 		t.Fatal(err)
 	}
 
-	out := captureStdout(t, func() {
+	out := captureStderr(t, func() {
 		code := RunPrd([]string{"show", "user-auth"}, true)
 		if code == 0 {
 			t.Errorf("expected non-zero exit, got 0")

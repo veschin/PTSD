@@ -169,7 +169,7 @@ func TestRunInitRefusesWithoutGit(t *testing.T) {
 
 	var output string
 	code := -1
-	output = captureOutput(func() {
+	output = captureStderr(t, func() {
 		code = RunInit([]string{}, true)
 	})
 
@@ -201,7 +201,7 @@ func TestRunInitRefusesIfPtsdExists(t *testing.T) {
 	// Second init — must fail.
 	var output string
 	code := -1
-	output = captureOutput(func() {
+	output = captureStderr(t, func() {
 		code = RunInit([]string{}, true)
 	})
 
@@ -514,7 +514,7 @@ func TestRunAdoptRefusesIfAlreadyInitialized(t *testing.T) {
 
 	var output string
 	code := -1
-	output = captureOutput(func() {
+	output = captureStderr(t, func() {
 		code = RunAdopt([]string{}, true)
 	})
 
@@ -548,7 +548,7 @@ func TestRunAdoptDryRunRefusesIfAlreadyInitialized(t *testing.T) {
 
 	var output string
 	code := -1
-	output = captureOutput(func() {
+	output = captureStderr(t, func() {
 		code = RunAdopt([]string{"--dry-run"}, true)
 	})
 
@@ -672,7 +672,7 @@ func TestRunInitHumanModeErrorNoGit(t *testing.T) {
 
 	var output string
 	code := -1
-	output = captureOutput(func() {
+	output = captureStderr(t, func() {
 		code = RunInit([]string{}, false)
 	})
 
@@ -703,7 +703,7 @@ func TestRunInitHumanModeErrorPtsdExists(t *testing.T) {
 	// Second init in human mode — must fail with code 1.
 	var output string
 	code := -1
-	output = captureOutput(func() {
+	output = captureStderr(t, func() {
 		code = RunInit([]string{}, false)
 	})
 
@@ -737,7 +737,7 @@ func TestRunAdoptHumanModeErrorAlreadyInitialized(t *testing.T) {
 
 	var output string
 	code := -1
-	output = captureOutput(func() {
+	output = captureStderr(t, func() {
 		code = RunAdopt([]string{}, false)
 	})
 

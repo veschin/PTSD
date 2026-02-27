@@ -209,7 +209,7 @@ func TestRunFeature_Add_DuplicateId_Error(t *testing.T) {
 
 	RunFeature([]string{"add", "my-feat", "My Feature"}, true)
 
-	out := captureStdout(t, func() {
+	out := captureStderr(t, func() {
 		RunFeature([]string{"add", "my-feat", "Duplicate"}, true)
 	})
 	exitCode := RunFeature([]string{"add", "my-feat", "Duplicate"}, true)
@@ -515,7 +515,7 @@ func TestRunFeature_Status_ImplementedRequiresPassingTests(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out := captureStdout(t, func() {
+	out := captureStderr(t, func() {
 		RunFeature([]string{"status", "my-feat", "implemented"}, true)
 	})
 	// pipeline error — exit code 1

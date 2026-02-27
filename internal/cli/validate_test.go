@@ -133,22 +133,11 @@ func TestRunValidate_Violations_ReportsErrors(t *testing.T) {
 	dir := setupValidateViolationProject(t)
 	chdirTo(t, dir)
 
-	// Capture stdout to inspect error output
-	origStdout := os.Stdout
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	os.Stdout = w
-
-	code := RunValidate([]string{}, true)
-
-	w.Close()
-	os.Stdout = origStdout
-
-	buf := make([]byte, 4096)
-	n, _ := r.Read(buf)
-	output := string(buf[:n])
+	// Capture stderr to inspect error output
+	var code int
+	output := captureStderr(t, func() {
+		code = RunValidate([]string{}, true)
+	})
 
 	if code != 1 {
 		t.Errorf("expected exit 1, got %d", code)
@@ -268,7 +257,7 @@ func TestRunValidate_BDDWithNoTests_OutputContainsError(t *testing.T) {
 	dir := setupValidateBDDNoTestsProject(t)
 	chdirTo(t, dir)
 
-	output := captureStdout(t, func() {
+	output := captureStderr(t, func() {
 		RunValidate([]string{}, true)
 	})
 
@@ -344,7 +333,7 @@ func TestRunValidate_MultipleErrors_AllReported(t *testing.T) {
 
 	chdirTo(t, dir)
 
-	output := captureStdout(t, func() {
+	output := captureStderr(t, func() {
 		code := RunValidate([]string{}, true)
 		if code != 1 {
 			t.Errorf("expected exit 1 with multiple violations, got %d", code)
@@ -373,7 +362,7 @@ func TestRunValidate_ErrorOutput_HasErrPipelinePrefix(t *testing.T) {
 	dir := setupValidateViolationProject(t)
 	chdirTo(t, dir)
 
-	output := captureStdout(t, func() {
+	output := captureStderr(t, func() {
 		RunValidate([]string{}, true)
 	})
 

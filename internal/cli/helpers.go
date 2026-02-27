@@ -2,18 +2,20 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/veschin/ptsd/internal/render"
 )
 
 func newRenderer(agentMode bool) render.Renderer {
+	// TODO: return HumanRenderer when available
 	return &render.AgentRenderer{}
 }
 
 func renderError(agentMode bool, category string, message string) int {
 	r := newRenderer(agentMode)
-	fmt.Println(r.RenderError(category, message))
+	fmt.Fprintln(os.Stderr, r.RenderError(category, message))
 	return errCategoryCode(category)
 }
 
@@ -26,7 +28,7 @@ func coreError(agentMode bool, err error) int {
 			category = parts[0]
 			msg = parts[1]
 		} else if len(parts) == 1 {
-			category = strings.TrimRight(parts[0], ":")
+			category = strings.TrimSuffix(parts[0], ":")
 			msg = ""
 		}
 	}

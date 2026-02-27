@@ -157,7 +157,7 @@ func TestRunConfig_Show_MissingConfig_Exit3(t *testing.T) {
 	// No .ptsd/ directory — config load must fail with exit code 3.
 	chdir(t, dir)
 
-	out := captureStdout(t, func() {
+	out := captureStderr(t, func() {
 		RunConfig([]string{"show"}, true)
 	})
 	exitCode := RunConfig([]string{"show"}, true)
@@ -210,7 +210,7 @@ func TestRunConfig_NoSubcommand_OutputContainsError(t *testing.T) {
 	setupPTSDDir(t, dir)
 	chdir(t, dir)
 
-	out := captureStdout(t, func() {
+	out := captureStderr(t, func() {
 		RunConfig([]string{}, true)
 	})
 
@@ -224,7 +224,7 @@ func TestRunConfig_UnknownSubcommand_OutputContainsError(t *testing.T) {
 	setupPTSDDir(t, dir)
 	chdir(t, dir)
 
-	out := captureStdout(t, func() {
+	out := captureStderr(t, func() {
 		RunConfig([]string{"get"}, true)
 	})
 
@@ -311,7 +311,7 @@ hooks:
 	}
 	chdir(t, dir)
 
-	out := captureStdout(t, func() {
+	out := captureStderr(t, func() {
 		RunConfig([]string{"show"}, true)
 	})
 	exitCode := RunConfig([]string{"show"}, true)
