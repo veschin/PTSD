@@ -8,32 +8,36 @@ features:
   config:
     stage: impl
     tests: written
-    review: pending
+    review: passed
     issues: 0
   feature-mgmt:
     stage: impl
     tests: written
-    review: pending
+    review: passed
     issues: 0
   task-mgmt:
     stage: impl
     tests: written
-    review: pending
+    review: passed
     issues: 0
   validate:
     stage: impl
     tests: written
-    review: pending
-    issues: 0
+    review: failed
+    issues: 3
+    issues_list:
+      - "assertHasError helper ignores contains arg — message assertions not verified"
+      - "hasTestsForFeature fallback returns true if any test file exists anywhere"
+      - "CheckReviewGate errors silently swallowed with continue"
   git-hooks:
     stage: impl
     tests: written
-    review: pending
+    review: passed
     issues: 0
   status:
     stage: impl
     tests: written
-    review: pending
+    review: passed
     issues: 0
   output:
     stage: impl
@@ -50,7 +54,7 @@ features:
   seed-mgmt:
     stage: impl
     tests: written
-    review: pending
+    review: passed
     issues: 0
   bdd-mgmt:
     stage: impl
@@ -60,20 +64,25 @@ features:
   test-integration:
     stage: impl
     tests: written
-    review: pending
+    review: passed
     issues: 0
   state-tracking:
     stage: impl
     tests: written
-    review: pending
+    review: passed
     issues: 0
 
   # Advanced
   review:
     stage: impl
     tests: written
-    review: pending
-    issues: 0
+    review: failed
+    issues: 4
+    issues_list:
+      - "validReviewStages uses 'test' but pipeline uses 'tests' (plural)"
+      - "CheckReviewGate errors on missing config, but RecordReview falls back to default"
+      - "repeated failing review does not update issues (if entry.Issues == 0 guard)"
+      - "no test for CheckReviewGate without config file"
   skills:
     stage: bdd
     tests: absent
