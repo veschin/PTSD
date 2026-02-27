@@ -3,28 +3,58 @@ sequence: {
 
   dev_user: Developer
   j_claude: "Claude Code\nOpus 4.6"
+  ops_hooks: ".claude/hooks/\n(shell scripts)"
   ops_ptsd: "ptsd\nCLI"
   db_state: ".ptsd/\nartifacts"
 
-  # Session start — ptsd injects pipeline state
-  dev_user -> j_claude: task
-  j_claude -> ops_ptsd: "ptsd context\n--agent"
+  dev_user -> j_claude: "start session"
+
+  # SessionStart hook
+  j_claude -> ops_hooks: SessionStart
+  ops_hooks -> ops_ptsd: "ptsd context\n--agent"
   ops_ptsd -> db_state: "read features,\nstate, tasks"
   db_state -> ops_ptsd: pipeline state
-  ops_ptsd -> j_claude: "next: auth\nstage=seed"
+  ops_ptsd -> ops_hooks: stdout
+  ops_hooks -> j_claude: "next: auth\nstage=seed"
 
-  # Enforcement loop
-  enforce: {
-    label: "loop [every file edit]"
-    j_claude -> ops_ptsd: "gate-check\n(PreToolUse)"
-    ops_ptsd -> j_claude: "allow / block"
-    j_claude -> j_claude: "write file"
-    j_claude -> ops_ptsd: "auto-track\n(PostToolUse)"
-    ops_ptsd -> db_state: advance stage
+  # Session loop — one per user prompt
+  session: {
+    label: "loop [each prompt]"
+
+    dev_user -> j_claude: prompt
+
+    # UserPromptSubmit hook — re-inject state
+    j_claude -> ops_hooks: UserPromptSubmit
+    ops_hooks -> ops_ptsd: "ptsd context\n--agent"
+    ops_ptsd -> ops_hooks: "updated state"
+    ops_hooks -> j_claude: "re-inject\ncontext"
+
+    # Edit loop — one per file write
+    edits: {
+      label: "loop [each file edit]"
+
+      # PreToolUse — gate-check
+      j_claude -> ops_hooks: "PreToolUse\n(Edit | Write)"
+      ops_hooks -> ops_ptsd: "ptsd hooks\npre-tool-use"
+      ops_ptsd -> ops_hooks: "exit 0 | exit 2"
+      ops_hooks -> j_claude: "allow / block"
+
+      j_claude -> j_claude: "write file"
+
+      # PostToolUse — auto-track
+      j_claude -> ops_hooks: "PostToolUse\n(Edit | Write)"
+      ops_hooks -> ops_ptsd: "ptsd hooks\npost-tool-use"
+      ops_ptsd -> db_state: "advance stage"
+      ops_ptsd -> ops_hooks: tracked
+      ops_hooks -> j_claude: "stage advanced"
+    }
+
+    # Commit — git hooks
+    j_claude -> ops_ptsd: "git commit\n[SCOPE] type:"
+    ops_ptsd -> ops_ptsd: "pre-commit:\nptsd validate"
+    ops_ptsd -> ops_ptsd: "commit-msg:\nvalidate scope"
+    ops_ptsd -> j_claude: "pass / fail"
   }
 
-  # Commit
-  j_claude -> ops_ptsd: "ptsd validate\n(pre-commit)"
-  ops_ptsd -> j_claude: "pass / fail"
-  j_claude -> dev_user: "commit with\n[SCOPE] type:"
+  j_claude -> dev_user: "result"
 }
