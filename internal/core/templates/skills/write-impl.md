@@ -19,3 +19,4 @@ description: Use when implementing code to make failing tests pass
 - Using fmt.Println for errors instead of returning fmt.Errorf with err: prefix.
 - Adding third-party dependencies — ptsd is stdlib only.
 - Not running tests after each change — catching failures early is cheaper.
+- Forgetting to run `ptsd review <feature> impl <score>` after committing — the feature stays unreviewed.

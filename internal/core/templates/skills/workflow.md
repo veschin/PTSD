@@ -19,12 +19,20 @@ PRD → Seed → BDD → Tests → Implementation
 
 ### Session protocol
 
-1. Read .ptsd/review-status.yaml — find where each feature is.
-2. Pick the next feature/stage with review: pending or tests: absent.
-3. Apply the appropriate skill from the table above.
-4. Record progress immediately in review-status.yaml after each action.
-5. Run ptsd validate --agent before committing.
-6. Commit with [SCOPE] type: message format.
+1. Run `ptsd context --agent` — see where each feature is and what to do next.
+2. Pick the next feature/stage from the `next:` lines.
+3. Apply the write-<stage> skill → create artifacts.
+4. Commit with `[SCOPE] type: message` format.
+5. Run `ptsd review <feature> <stage> <score>` — score 0-10, honest self-assessment.
+6. Move to the next stage or feature.
+
+### Stage cycle (repeat for every feature × every stage)
+
+```
+write artifacts → commit [SCOPE] → ptsd review <feature> <stage> <score> → next
+```
+
+Do NOT skip the `ptsd review` step. It records review verdicts. Without it the feature stays `review: pending` forever.
 
 ### Gate rules
 

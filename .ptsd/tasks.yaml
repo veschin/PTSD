@@ -53,3 +53,9 @@ tasks:
     status: DONE
     priority: B
     description: "Move skill templates to //go:embed files. Add Common Mistakes section to each. Generate .claude/skills/<name>/SKILL.md for Claude Code discovery. Add skill table to CLAUDE.md template. Drop trigger: frontmatter."
+  - id: T-3
+    feature: seed-mgmt
+    title: "ptsd seed add/bdd add создают фиктивные стабы вместо реального контента"
+    status: TODO
+    priority: A
+    description: "ptsd seed add и ptsd bdd add перезаписывают ручной контент стабами. Round 4: Sonnet написал 21 JSON seed-файл и 151 строку Gherkin, потом ptsd bdd add затёр всё. Нужно: 1) seed add не должен трогать существующие файлы, только регистрировать; 2) bdd add не должен перезаписывать .feature файлы; 3) init seed должен создавать шаблон только если файла нет. Связанные issues: BDD-WIPE, SEED-WIPE."
