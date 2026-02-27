@@ -19,14 +19,23 @@ func RunInit(args []string, agentMode bool) int {
 		name = args[0]
 	}
 
-	if err := core.InitProject(cwd, name); err != nil {
+	result, err := core.InitProject(cwd, name)
+	if err != nil {
 		return coreError(agentMode, err)
 	}
 
-	if agentMode {
-		fmt.Printf("init:ok dir:%s\n", cwd)
+	if result.Reinit {
+		if agentMode {
+			fmt.Printf("reinit:ok hooks:5 skills:12\n")
+		} else {
+			fmt.Printf("Re-initialized ptsd project in %s\n", cwd)
+		}
 	} else {
-		fmt.Printf("Initialized ptsd project in %s\n", cwd)
+		if agentMode {
+			fmt.Printf("init:ok dir:%s\n", cwd)
+		} else {
+			fmt.Printf("Initialized ptsd project in %s\n", cwd)
+		}
 	}
 	return 0
 }

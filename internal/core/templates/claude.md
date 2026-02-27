@@ -27,6 +27,28 @@ EVERY session, BEFORE any work:
 - ptsd seed init <id> --agent       — initialize seed directory
 - ptsd gate-check --file <path> --agent — check if file write is allowed
 
+## Skills
+
+PTSD pipeline skills are in `.claude/skills/` — auto-loaded when relevant.
+
+| Skill | When to Use |
+|-------|------------|
+| write-prd | Creating or updating a PRD section |
+| write-seed | Creating seed data for a feature |
+| write-bdd | Writing Gherkin BDD scenarios |
+| write-tests | Writing tests from BDD scenarios |
+| write-impl | Implementing to make tests pass |
+| create-tasks | Adding tasks to tasks.yaml |
+| review-prd | Reviewing PRD before advancing to seed |
+| review-seed | Reviewing seed data before advancing to bdd |
+| review-bdd | Reviewing BDD before advancing to tests |
+| review-tests | Reviewing tests before advancing to impl |
+| review-impl | Reviewing implementation after tests pass |
+| workflow | Session start or when unsure what to do next |
+| adopt | Bootstrapping existing project into PTSD |
+
+Use the corresponding write skill, then review skill at each pipeline stage.
+
 ## Pipeline (strict order, no skipping)
 
 PRD → Seed → BDD → Tests → Implementation

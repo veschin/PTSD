@@ -7,20 +7,29 @@ import (
 	"strings"
 )
 
+// InitResult reports what InitProject did.
+type InitResult struct {
+	Reinit bool
+}
+
 // InitProject scaffolds .ptsd/ directory structure in the given directory.
-// It requires a git repository (presence of .git/) and refuses if .ptsd/ already exists.
+// If .ptsd/ already exists, it performs a re-init (regenerates hooks, skills, CLAUDE.md section)
+// without touching project data files.
 // name is the project name written into ptsd.yaml; if empty, defaults to basename of dir.
-func InitProject(dir string, name string) error {
+func InitProject(dir string, name string) (*InitResult, error) {
 	// Require git repository.
 	gitDir := filepath.Join(dir, ".git")
 	if _, err := os.Stat(gitDir); err != nil {
-		return fmt.Errorf("err:config git repository required")
+		return nil, fmt.Errorf("err:config git repository required")
 	}
 
-	// Refuse re-init.
+	// Auto-detect re-init.
 	ptsdDir := filepath.Join(dir, ".ptsd")
 	if _, err := os.Stat(ptsdDir); err == nil {
-		return fmt.Errorf("err:validation .ptsd already exists")
+		if err := ReInitProject(dir); err != nil {
+			return nil, err
+		}
+		return &InitResult{Reinit: true}, nil
 	}
 
 	if name == "" {
@@ -37,7 +46,7 @@ func InitProject(dir string, name string) error {
 	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0755); err != nil {
-			return fmt.Errorf("err:io %w", err)
+			return nil, fmt.Errorf("err:io %w", err)
 		}
 	}
 
@@ -47,10 +56,10 @@ func InitProject(dir string, name string) error {
 	// Write ptsd.yaml.
 	ptsdYAML, err := renderTemplate("templates/ptsd.yaml.tmpl", struct{ Name, Runner string }{name, runner})
 	if err != nil {
-		return fmt.Errorf("err:io %w", err)
+		return nil, fmt.Errorf("err:io %w", err)
 	}
 	if err := writeFile(filepath.Join(ptsdDir, "ptsd.yaml"), ptsdYAML); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Write empty registry files.
@@ -62,47 +71,113 @@ func InitProject(dir string, name string) error {
 	}
 	for filename, content := range emptyFiles {
 		if err := writeFile(filepath.Join(ptsdDir, filename), content); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	// Write PRD template.
 	prdContent, err := renderTemplate("templates/prd.md.tmpl", struct{ Name string }{name})
 	if err != nil {
-		return fmt.Errorf("err:io %w", err)
+		return nil, fmt.Errorf("err:io %w", err)
 	}
 	if err := writeFile(filepath.Join(ptsdDir, "docs", "PRD.md"), prdContent); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Write skills.
 	if err := GenerateAllSkills(dir); err != nil {
-		return err
+		return nil, err
 	}
 
-	// Write CLAUDE.md at project root.
-	claudeMD, err := readTemplate("templates/claude.md")
-	if err != nil {
-		return fmt.Errorf("err:io %w", err)
+	// Generate Claude Code skill discovery files.
+	if err := generateClaudeSkills(dir); err != nil {
+		return nil, err
 	}
-	if err := writeFile(filepath.Join(dir, "CLAUDE.md"), claudeMD); err != nil {
-		return err
+
+	// Write CLAUDE.md at project root (with markers for future re-init).
+	if err := updateClaudeMDSection(dir); err != nil {
+		return nil, err
 	}
 
 	// Install git hooks.
+	if err := GeneratePreCommitHook(dir); err != nil {
+		return nil, err
+	}
+	if err := GenerateCommitMsgHook(dir); err != nil {
+		return nil, err
+	}
+
+	// Generate Claude Code hooks.
+	if err := generateClaudeHooks(dir); err != nil {
+		return nil, err
+	}
+
+	return &InitResult{Reinit: false}, nil
+}
+
+const ptsdMarker = "<!-- ---ptsd--- -->"
+
+// ReInitProject regenerates hooks, skills, and CLAUDE.md section without touching project data.
+func ReInitProject(dir string) error {
+	if err := GenerateAllSkills(dir); err != nil {
+		return err
+	}
+	if err := generateClaudeSkills(dir); err != nil {
+		return err
+	}
 	if err := GeneratePreCommitHook(dir); err != nil {
 		return err
 	}
 	if err := GenerateCommitMsgHook(dir); err != nil {
 		return err
 	}
-
-	// Generate Claude Code hooks.
 	if err := generateClaudeHooks(dir); err != nil {
 		return err
 	}
-
+	if err := updateClaudeMDSection(dir); err != nil {
+		return err
+	}
 	return nil
+}
+
+// updateClaudeMDSection writes or updates the ptsd-owned section in CLAUDE.md using markers.
+func updateClaudeMDSection(dir string) error {
+	claudeMD, err := readTemplate("templates/claude.md")
+	if err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+
+	section := ptsdMarker + "\n" + claudeMD + "\n" + ptsdMarker
+
+	path := filepath.Join(dir, "CLAUDE.md")
+	existing, err := os.ReadFile(path)
+	if err != nil {
+		// File doesn't exist — create with markers.
+		return writeFile(path, section+"\n")
+	}
+
+	content := string(existing)
+	first := strings.Index(content, ptsdMarker)
+	if first == -1 {
+		// No markers — append.
+		if len(content) > 0 && !strings.HasSuffix(content, "\n") {
+			content += "\n"
+		}
+		content += "\n" + section + "\n"
+		return writeFile(path, content)
+	}
+
+	second := strings.Index(content[first+len(ptsdMarker):], ptsdMarker)
+	if second == -1 {
+		// Only one marker (malformed) — replace from first marker to end, append closing.
+		content = content[:first] + section + "\n"
+		return writeFile(path, content)
+	}
+
+	// Both markers found — replace everything from first marker to end of second marker.
+	afterSecond := first + len(ptsdMarker) + second + len(ptsdMarker)
+	content = content[:first] + section + content[afterSecond:]
+	return writeFile(path, content)
 }
 
 func generateClaudeHooks(dir string) error {

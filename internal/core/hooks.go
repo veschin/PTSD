@@ -138,6 +138,11 @@ func ValidateCommit(projectDir string, message string, stagedFiles []string) err
 }
 
 func ClassifyFile(projectDir string, path string) (string, error) {
+	// .claude/skills/ — generated skill discovery files
+	if strings.HasPrefix(path, ".claude/skills/") {
+		return "STATUS", nil
+	}
+
 	// .ptsd/ internal files
 	if strings.HasPrefix(path, ".ptsd/") {
 		switch {
