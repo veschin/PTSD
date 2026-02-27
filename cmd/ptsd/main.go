@@ -27,6 +27,9 @@ func main() {
 	if cmd == "--help" || cmd == "-h" {
 		cmd = "help"
 	}
+	if cmd == "--version" || cmd == "-v" {
+		cmd = "version"
+	}
 	subargs := filteredArgs[1:]
 
 	var exitCode int
@@ -69,6 +72,8 @@ func main() {
 		exitCode = cli.RunAutoTrack(subargs, agentMode)
 	case "help":
 		exitCode = cli.RunHelp(subargs, agentMode)
+	case "version":
+		exitCode = cli.RunVersion(subargs, agentMode)
 	default:
 		fmt.Fprintf(os.Stderr, "err:user unknown command: %s\n", cmd)
 		exitCode = 2

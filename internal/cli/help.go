@@ -37,6 +37,7 @@ Other:
   skills                   List pipeline skills
   issues                   Common issues registry
   help                     This message
+  version                  Show version
 
 Flags:
   --agent                  Machine-readable output (all commands)`)

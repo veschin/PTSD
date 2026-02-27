@@ -43,23 +43,16 @@ Requires Go 1.25+
 go install github.com/veschin/ptsd/cmd/ptsd@latest
 ```
 
-Or build from source:
+**Update** — same command:
 
 ```bash
-git clone https://github.com/veschin/ptsd.git && cd ptsd
-go build -o ptsd ./cmd/ptsd
-```
-
-**Update** — pull and rebuild:
-
-```bash
-cd ptsd && git pull && go build -o ptsd ./cmd/ptsd
+go install github.com/veschin/ptsd/cmd/ptsd@latest
 ```
 
 **Uninstall:**
 
 ```bash
-rm $(which ptsd)                   # remove binary
+rm $(go env GOPATH)/bin/ptsd
 # per project — remove generated artifacts:
 rm -rf .ptsd/ .claude/ .git/hooks/pre-commit .git/hooks/commit-msg
 ```

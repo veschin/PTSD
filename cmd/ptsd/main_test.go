@@ -120,6 +120,44 @@ func TestMain_HelpFlag(t *testing.T) {
 	}
 }
 
+// Scenario: version command shows version
+// Given ptsd binary
+// When I run "ptsd version"
+// Then exit code is 0
+// And output contains version string
+func TestMain_Version(t *testing.T) {
+	bin := getPtsdBinary(t)
+	cmd := exec.Command(bin, "version")
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		t.Fatalf("expected exit 0, got error: %s %s", err, out)
+	}
+
+	output := string(out)
+	if !strings.Contains(output, "ptsd") {
+		t.Errorf("version output missing 'ptsd', got: %s", output)
+	}
+}
+
+// Scenario: --version flag shows version
+// Given ptsd binary
+// When I run "ptsd --version"
+// Then exit code is 0
+func TestMain_VersionFlag(t *testing.T) {
+	bin := getPtsdBinary(t)
+	cmd := exec.Command(bin, "--version")
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		t.Fatalf("expected exit 0, got error: %s %s", err, out)
+	}
+
+	if !strings.Contains(string(out), "ptsd") {
+		t.Errorf("--version output missing 'ptsd', got: %s", out)
+	}
+}
+
 // Scenario: --agent flag passed to handlers
 // Given an initialized project
 // When I run "ptsd config show --agent"
