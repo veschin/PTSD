@@ -20,11 +20,14 @@ func main() {
 	}
 
 	if len(filteredArgs) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: ptsd <command> [options]")
+		fmt.Fprintln(os.Stderr, "usage: ptsd <command> [options]\nRun 'ptsd help' for available commands.")
 		os.Exit(2)
 	}
 
 	cmd := filteredArgs[0]
+	if cmd == "--help" || cmd == "-h" {
+		cmd = "help"
+	}
 	subargs := filteredArgs[1:]
 
 	var exitCode int
@@ -65,6 +68,8 @@ func main() {
 		exitCode = cli.RunGateCheck(subargs, agentMode)
 	case "auto-track":
 		exitCode = cli.RunAutoTrack(subargs, agentMode)
+	case "help":
+		exitCode = cli.RunHelp(subargs, agentMode)
 	default:
 		fmt.Fprintf(os.Stderr, "err:user unknown command: %s\n", cmd)
 		exitCode = 2

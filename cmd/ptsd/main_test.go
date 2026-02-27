@@ -85,6 +85,48 @@ func TestMain_MissingSubcommand(t *testing.T) {
 	}
 }
 
+// Scenario: help command shows all commands
+// Given ptsd binary
+// When I run "ptsd help"
+// Then exit code is 0
+// And output contains command names
+func TestMain_Help(t *testing.T) {
+	bin := getPtsdBinary(t)
+	cmd := exec.Command(bin, "help")
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		t.Fatalf("expected exit 0, got error: %s %s", err, out)
+	}
+
+	output := string(out)
+	for _, name := range []string{"init", "feature", "validate", "review", "context", "help"} {
+		if !strings.Contains(output, name) {
+			t.Errorf("help output missing command %q, got: %s", name, output)
+		}
+	}
+}
+
+// Scenario: --help flag shows help
+// Given ptsd binary
+// When I run "ptsd --help"
+// Then exit code is 0
+// And output matches "ptsd help"
+func TestMain_HelpFlag(t *testing.T) {
+	bin := getPtsdBinary(t)
+	cmd := exec.Command(bin, "--help")
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		t.Fatalf("expected exit 0, got error: %s %s", err, out)
+	}
+
+	output := string(out)
+	if !strings.Contains(output, "init") {
+		t.Errorf("--help output missing commands, got: %s", output)
+	}
+}
+
 // Scenario: --agent flag passed to handlers
 // Given an initialized project
 // When I run "ptsd config show --agent"
