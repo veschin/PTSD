@@ -1,9 +1,9 @@
 features:
   # Core
   init:
-    stage: bdd
-    tests: absent
-    review: pending
+    stage: impl
+    tests: written
+    review: passed
     issues: 0
   config:
     stage: impl
@@ -75,17 +75,17 @@ features:
     review: passed
     issues: 0
   skills:
-    stage: bdd
-    tests: absent
-    review: pending
+    stage: impl
+    tests: written
+    review: passed
     issues: 0
   adopt:
-    stage: bdd
-    tests: absent
-    review: pending
+    stage: impl
+    tests: written
+    review: passed
     issues: 0
   common-issues:
-    stage: prd
-    tests: absent
-    review: pending
+    stage: impl
+    tests: written
+    review: passed
     issues: 0
