@@ -52,9 +52,6 @@ func TestGenerateSkillCreatesFileWithCorrectContentStructure(t *testing.T) {
 	if !strings.Contains(content, "description:") {
 		t.Error("frontmatter missing description field")
 	}
-	if !strings.Contains(content, "trigger:") {
-		t.Error("frontmatter missing trigger field")
-	}
 }
 
 func TestGenerateSkillInvalidStageFails(t *testing.T) {
@@ -107,7 +104,7 @@ func TestListSkillsReturnsAllSkills(t *testing.T) {
 	// Write three skill files
 	files := []string{"bdd-auth.md", "prd-config.md", "workflow.md"}
 	for _, f := range files {
-		content := "---\nname: test\ndescription: test\ntrigger: test\n---\n\nbody\n"
+		content := "---\nname: test\ndescription: test\n---\n\nbody\n"
 		if err := os.WriteFile(filepath.Join(skillsDir, f), []byte(content), 0644); err != nil {
 			t.Fatal(err)
 		}
@@ -159,7 +156,7 @@ func TestListSkillsPopulatesFields(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	content := "---\nname: test\ndescription: test\ntrigger: test\n---\n\nbody\n"
+	content := "---\nname: test\ndescription: test\n---\n\nbody\n"
 	if err := os.WriteFile(filepath.Join(skillsDir, "bdd-auth.md"), []byte(content), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -242,9 +239,6 @@ func TestGenerateAllSkillsFrontmatterFields(t *testing.T) {
 		if !strings.Contains(content, "description:") {
 			t.Errorf("%s: frontmatter missing description", entry.Name())
 		}
-		if !strings.Contains(content, "trigger:") {
-			t.Errorf("%s: frontmatter missing trigger", entry.Name())
-		}
 	}
 }
 
@@ -274,5 +268,79 @@ func TestWorkflowSkillExists(t *testing.T) {
 	}
 	if !strings.Contains(content, "BDD") || !strings.Contains(content, "bdd") {
 		t.Error("workflow.md must reference BDD stage")
+	}
+}
+
+func TestGenerateClaudeSkillsCreatesDirectories(t *testing.T) {
+	dir := t.TempDir()
+
+	err := generateClaudeSkills(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, filename := range standardSkillFiles {
+		name := strings.TrimSuffix(filename, ".md")
+		skillPath := filepath.Join(dir, ".claude", "skills", name, "SKILL.md")
+		if _, err := os.Stat(skillPath); os.IsNotExist(err) {
+			t.Errorf("expected %s to exist", skillPath)
+		}
+	}
+}
+
+func TestClaudeSkillContentHasFrontmatter(t *testing.T) {
+	dir := t.TempDir()
+
+	if err := generateClaudeSkills(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Check one skill has proper frontmatter
+	data, err := os.ReadFile(filepath.Join(dir, ".claude", "skills", "write-prd", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	if !strings.HasPrefix(content, "---\n") {
+		t.Error("SKILL.md must start with YAML frontmatter")
+	}
+	if !strings.Contains(content, "name: write-prd") {
+		t.Error("SKILL.md missing name field")
+	}
+	if !strings.Contains(content, "description:") {
+		t.Error("SKILL.md missing description field")
+	}
+}
+
+func TestSkillContentHasCommonMistakes(t *testing.T) {
+	dir := t.TempDir()
+	ptsdDir := filepath.Join(dir, ".ptsd")
+	if err := os.Mkdir(ptsdDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := GenerateAllSkills(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	// At least one skill must contain "Common Mistakes"
+	found := false
+	skillsDir := filepath.Join(dir, ".ptsd", "skills")
+	entries, err := os.ReadDir(skillsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		data, err := os.ReadFile(filepath.Join(skillsDir, entry.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(data), "## Common Mistakes") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("no skill file contains '## Common Mistakes' section")
 	}
 }

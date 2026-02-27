@@ -184,9 +184,9 @@ func TestRunInitRefusesWithoutGit(t *testing.T) {
 	}
 }
 
-// TestRunInitRefusesIfPtsdExists covers BDD: "Init refuses if .ptsd already exists".
-// Re-init of an already-initialized directory must return exit code 1 (validation error).
-func TestRunInitRefusesIfPtsdExists(t *testing.T) {
+// TestRunInitReInitSucceeds covers BDD: "Re-init existing project regenerates hooks and skills".
+// Re-init of an already-initialized directory must succeed and print reinit:ok.
+func TestRunInitReInitSucceeds(t *testing.T) {
 	dir := t.TempDir()
 	setupGitRepo(t, dir)
 	chdirTemp(t, dir)
@@ -198,21 +198,16 @@ func TestRunInitRefusesIfPtsdExists(t *testing.T) {
 		}
 	})
 
-	// Second init — must fail.
-	var output string
-	code := -1
-	output = captureStderr(t, func() {
-		code = RunInit([]string{}, true)
+	// Second init — must succeed as re-init.
+	output := captureOutput(func() {
+		code := RunInit([]string{}, true)
+		if code != 0 {
+			t.Errorf("expected exit code 0 for re-init, got %d", code)
+		}
 	})
 
-	if code != 1 {
-		t.Errorf("expected exit code 1 (validation), got %d. output: %q", code, output)
-	}
-	if !strings.Contains(output, "err:validation") {
-		t.Errorf("expected 'err:validation' in output, got: %q", output)
-	}
-	if !strings.Contains(output, ".ptsd already exists") {
-		t.Errorf("expected '.ptsd already exists' in output, got: %q", output)
+	if !strings.Contains(output, "reinit:ok") {
+		t.Errorf("expected 'reinit:ok' in output, got: %q", output)
 	}
 }
 
@@ -686,33 +681,30 @@ func TestRunInitHumanModeErrorNoGit(t *testing.T) {
 	}
 }
 
-// TestRunInitHumanModeErrorPtsdExists verifies that RunInit in human mode returns exit code 1
-// when .ptsd already exists and prints a human-readable error.
-func TestRunInitHumanModeErrorPtsdExists(t *testing.T) {
+// TestRunInitHumanModeReInit verifies that RunInit in human mode succeeds on re-init
+// and prints a human-readable re-init message.
+func TestRunInitHumanModeReInit(t *testing.T) {
 	dir := t.TempDir()
 	setupGitRepo(t, dir)
 	chdirTemp(t, dir)
 
 	// First init — must succeed.
 	captureOutput(func() {
-		if code := RunInit([]string{}, true); code != 0 {
+		if code := RunInit([]string{}, false); code != 0 {
 			t.Fatalf("first RunInit failed")
 		}
 	})
 
-	// Second init in human mode — must fail with code 1.
-	var output string
-	code := -1
-	output = captureStderr(t, func() {
-		code = RunInit([]string{}, false)
+	// Second init in human mode — must succeed as re-init.
+	output := captureOutput(func() {
+		code := RunInit([]string{}, false)
+		if code != 0 {
+			t.Errorf("expected exit code 0 for re-init, got %d", code)
+		}
 	})
 
-	if code != 1 {
-		t.Errorf("expected exit code 1 (validation), got %d. output: %q", code, output)
-	}
-	// Human mode must mention the conflict.
-	if !strings.Contains(output, ".ptsd") {
-		t.Errorf("expected '.ptsd' in human-mode error output, got: %q", output)
+	if !strings.Contains(output, "Re-initialized") {
+		t.Errorf("expected 'Re-initialized' in output, got: %q", output)
 	}
 }
 

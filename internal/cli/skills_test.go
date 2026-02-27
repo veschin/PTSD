@@ -87,7 +87,7 @@ func TestRunSkills_List_WithSkills(t *testing.T) {
 	if err := os.MkdirAll(skillsDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	skillContent := "---\nname: bdd-my-feat\ndescription: test skill\ntrigger: test\n---\n\n## body\n"
+	skillContent := "---\nname: bdd-my-feat\ndescription: test skill\n---\n\n## body\n"
 	if err := os.WriteFile(filepath.Join(skillsDir, "bdd-my-feat.md"), []byte(skillContent), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -137,9 +137,6 @@ func TestRunSkills_Generate_CreatesFileWithFrontmatter(t *testing.T) {
 	}
 	if !strings.Contains(content, "description:") {
 		t.Error("generated skill missing description field in frontmatter")
-	}
-	if !strings.Contains(content, "trigger:") {
-		t.Error("generated skill missing trigger field in frontmatter")
 	}
 }
 
@@ -243,7 +240,7 @@ func TestRunSkills_List_HumanMode(t *testing.T) {
 	if err := os.MkdirAll(skillsDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	skillContent := "---\nname: bdd-my-feat\ndescription: test skill\ntrigger: test\n---\n\n## body\n"
+	skillContent := "---\nname: bdd-my-feat\ndescription: test skill\n---\n\n## body\n"
 	if err := os.WriteFile(filepath.Join(skillsDir, "bdd-my-feat.md"), []byte(skillContent), 0644); err != nil {
 		t.Fatal(err)
 	}

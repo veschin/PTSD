@@ -184,6 +184,7 @@ func TestFileClassificationByPath(t *testing.T) {
 		{".ptsd/docs/PRD.md", "PRD"},
 		{".ptsd/seeds/auth/login.yaml", "SEED"},
 		{".ptsd/bdd/auth.feature", "BDD"},
+		{".claude/skills/write-prd/SKILL.md", "STATUS"},
 		{"tests/auth.test.ts", "TEST"},
 		{"src/auth.go", "IMPL"},
 		{"internal/core/hooks.go", "IMPL"},
