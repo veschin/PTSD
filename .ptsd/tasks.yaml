@@ -1,1 +1,43 @@
-tasks: []
+tasks:
+  - id: CLI-1
+    feature: init
+    title: "CLI handlers for init + adopt"
+    status: DONE
+    priority: A
+    description: "Create internal/cli/init.go with RunInit, RunAdopt handlers"
+  - id: CLI-2
+    feature: feature-mgmt
+    title: "CLI handlers for feature + config"
+    status: DONE
+    priority: A
+    description: "Create internal/cli/feature.go and internal/cli/config.go"
+  - id: CLI-3
+    feature: task-mgmt
+    title: "CLI handler for task management"
+    status: DONE
+    priority: A
+    description: "Create internal/cli/task.go with RunTask handler"
+  - id: CLI-4
+    feature: prd-check
+    title: "CLI handlers for pipeline ops (prd, seed, bdd, test)"
+    status: DONE
+    priority: A
+    description: "Create internal/cli/pipeline.go with RunPrd, RunSeed, RunBdd, RunTest"
+  - id: CLI-5
+    feature: status
+    title: "CLI handlers for status + validate + hooks"
+    status: DONE
+    priority: A
+    description: "Create internal/cli/status.go, validate.go, hooks.go"
+  - id: CLI-6
+    feature: review
+    title: "CLI handlers for review + skills + issues"
+    status: DONE
+    priority: A
+    description: "Create internal/cli/review.go, skills.go, issues.go"
+  - id: CLI-7
+    feature: output
+    title: "Wire main.go with arg routing to all CLI handlers"
+    status: TODO
+    priority: A
+    description: "Create cmd/ptsd/main.go with full routing table, --agent flag"

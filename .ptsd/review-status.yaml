@@ -19,7 +19,9 @@ features:
     stage: impl
     tests: written
     review: passed
-    issues: 0
+    issues: 1
+    issues_list:
+      - "BDD 'list --feature' filter not in implementation, test documents gap"
   validate:
     stage: impl
     tests: written
@@ -46,7 +48,9 @@ features:
     stage: impl
     tests: written
     review: passed
-    issues: 0
+    issues: 1
+    issues_list:
+      - "BDD 'Extract PRD section for feature' not tested at CLI level"
   seed-mgmt:
     stage: impl
     tests: written
@@ -73,7 +77,9 @@ features:
     stage: impl
     tests: written
     review: passed
-    issues: 0
+    issues: 1
+    issues_list:
+      - "review.go verdict threshold hardcoded to 7 instead of reading config"
   skills:
     stage: impl
     tests: written
@@ -88,4 +94,6 @@ features:
     stage: impl
     tests: written
     review: passed
-    issues: 0
+    issues: 1
+    issues_list:
+      - "BDD says exit 2 for validation errors, impl returns exit 1"

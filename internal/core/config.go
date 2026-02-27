@@ -56,7 +56,7 @@ func LoadConfig(dir string) (*Config, error) {
 
 	content, err := os.ReadFile(cfgPath)
 	if err != nil {
-		return nil, fmt.Errorf("err:config: %w", err)
+		return nil, fmt.Errorf("err:config %w", err)
 	}
 
 	cfg, err := parseConfig(string(content))
@@ -82,7 +82,7 @@ func findConfigPath(dir string) (string, error) {
 		}
 		dir = parent
 	}
-	return "", fmt.Errorf("err:config: not found")
+	return "", fmt.Errorf("err:config not found")
 }
 
 func stripQuotes(s string) string {
@@ -123,7 +123,7 @@ func parseConfig(content string) (*Config, error) {
 		line = strings.TrimRight(line, " ")
 
 		if strings.Contains(line, "[") && !strings.Contains(line, "]") {
-			return nil, fmt.Errorf("err:config: invalid YAML at line %d: unclosed bracket", i+1)
+			return nil, fmt.Errorf("err:config invalid YAML at line %d: unclosed bracket", i+1)
 		}
 
 		if strings.HasSuffix(line, ":") && !strings.HasPrefix(line, " ") {
