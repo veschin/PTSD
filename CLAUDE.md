@@ -30,14 +30,17 @@ cmd/ptsd/main.go → internal/cli/* → internal/core/* → internal/yaml/*
 
 - `core/` — domain logic, zero TUI imports. All YAML parsing is inline here (line-by-line `strings.Split`/`HasPrefix`/`TrimPrefix`, no third-party parser)
 - `render/` — output formatting. Only `AgentRenderer` exists; HumanRenderer (Bubbletea TUI) is not yet implemented
-- `cli/` — glue: args → core → render. One file per command, all share signature `func RunX(args []string, agentMode bool) int`
+- `cli/` — glue: args → core → render. Signature `func RunX(args []string, agentMode bool) int`. Most commands get their own file, but `pipeline.go` groups `prd`/`seed`/`bdd`/`test` and `init.go` groups `init`/`adopt`
 - `yaml/` — declared as leaf package but currently empty; all parsing lives in `core/`
+- `core/templates.go` — uses `//go:embed templates/*` to ship skills, hook scripts, `settings.json` template inside the binary
 
 ### CLI Command Registration
 
-`main.go` is a flat `switch cmd` dispatcher (~75 lines). No cobra, no flag package. Arg parsing is manual loop-over-args. To add a new command:
+`main.go` is a flat `switch cmd` dispatcher. No cobra, no flag package. Arg parsing is manual loop-over-args. To add a new command:
 1. New `case "cmd-name":` in `main.go`
 2. New `cli/cmd-name.go` with `func RunCmdName(args []string, agentMode bool) int`
+
+Go module: `github.com/veschin/ptsd`. Internal imports use `github.com/veschin/ptsd/internal/...`
 
 ### Error Protocol
 
@@ -50,24 +53,28 @@ Errors flow as `fmt.Errorf("err:category message")`. The `coreError()` helper in
 
 ### Hook Auto-Wiring
 
-`ptsd init` generates `.claude/settings.json` that wires Claude Code hooks:
-- `SessionStart` + `UserPromptSubmit` → `ptsd context --agent` (injects pipeline state)
-- `PreToolUse` (Edit|Write) → `ptsd hooks pre-tool-use` → `GateCheck()` (blocks pipeline-violating writes)
-- `PostToolUse` (Edit|Write) → `ptsd hooks post-tool-use` → `AutoTrack()` (auto-advances feature stage)
+`ptsd init` generates `.claude/hooks/*.sh` scripts and `.claude/settings.json` that wires them as Claude Code hooks:
+- `SessionStart` + `UserPromptSubmit` → `ptsd-context.sh` → `ptsd context --agent` (injects pipeline state)
+- `PreToolUse` (Edit|Write) → `ptsd-gate.sh` → `ptsd hooks pre-tool-use` → `GateCheck()` (blocks pipeline-violating writes)
+- `PostToolUse` (Edit|Write) → `ptsd-track.sh` → `ptsd hooks post-tool-use` → `AutoTrack()` (auto-advances feature stage)
 
 Hooks read Claude Code's JSON from stdin, extract `file_path` via string search (no JSON decoder), return exit 2 to block or 0 to allow.
+
+`ptsd init` also generates git hooks: `pre-commit` runs `ptsd validate`, `commit-msg` runs `ptsd hooks validate-commit`.
+
+Re-running `ptsd init` is safe (idempotent) — regenerates hooks/skills/CLAUDE.md section without touching data files.
 
 ### Key Domain Types
 
 - `core/registry.go` — `Feature` struct, CRUD on `.ptsd/features.yaml`
-- `core/state.go` — `State`/`FeatureState` with hashes, scores, test mappings; `CheckRegressions()` compares SHA256 hashes (mutates state on read)
+- `core/state.go` — `State`/`FeatureState` with hashes, scores, test mappings; `CheckRegressions()` compares SHA256 hashes (PRD changes downgrade stage; seed/BDD/test changes warn only)
 - `core/pipeline.go` — `Validate()` orchestrates all checks; `ClassifyFile()` maps paths to scopes
 - `core/context.go` — `BuildContext()` combines features + review-status + tasks → emits `next`/`blocked`/`done`/`task` lines
 - `core/review.go` — `ReviewStatusEntry`, `RecordReview()`, `CheckReviewGate()`
 
 ### Feature ID as Canonical Link
 
-Everything resolves by feature ID: test files map via `inferFeatureFromTestFile()` (substring matching), BDD files are `<id>.feature`, seeds are `seeds/<id>/`, PRD anchors are `<!-- feature:<id> -->`.
+Everything resolves by feature ID: test files map via `matchFeatureID()` (exact match first, then longest substring match), BDD files are `<id>.feature`, seeds are `seeds/<id>/`, PRD anchors are `<!-- feature:<id> -->`.
 
 `planned` and `deferred` features are excluded from all pipeline checks.
 
@@ -121,6 +128,7 @@ Every artifact links to a feature. No orphan files. No skipping steps.
 
 Each stage requires review with score 0-10. Score < `review.min_score` (default 7) = redo.
 Review stored in `.ptsd/state.yaml`. Review status in `.ptsd/review-status.yaml`.
+When `review.auto_redo: true` and score < min, a redo task is automatically appended to `tasks.yaml`.
 
 ## Rules
 
@@ -159,18 +167,29 @@ File contains ALL registered features. Fields:
 Update triggers: test written, review done, stage advanced, issue fixed.
 On fix: remove from `issues_list`, decrement. At 0: set `passed`, drop `issues_list`.
 
-### Bootstrapping phase
+### Gate Check: AI-Blocked Files
 
-**ptsd CLI does not exist yet.** Track manually via direct file edits.
-Once ptsd CLI is operational — ALL tracking goes exclusively through `ptsd` commands.
+`GateCheck()` blocks LLM writes to files not in the allowed list. Key restriction: **`.ptsd/review-status.yaml` cannot be edited directly** — use `ptsd review` commands instead. Allowed files include `.ptsd/docs/PRD.md`, `.ptsd/tasks.yaml`, `.ptsd/state.yaml`, `.ptsd/features.yaml`, `.ptsd/ptsd.yaml`, `.ptsd/issues.yaml`, `CLAUDE.md`, `.claude/settings.json`, `.ptsd/skills/**`, `.claude/hooks/**`.
+
+### Skills Generation
+
+`ptsd init` writes 13 skill files to both `.ptsd/skills/` (project reference) and `.claude/skills/<name>/SKILL.md` (Claude Code auto-discovery). Skills: `write-prd`, `write-seed`, `write-bdd`, `write-tests`, `write-impl`, `create-tasks`, `review-prd`, `review-seed`, `review-bdd`, `review-tests`, `review-impl`, `adopt`, `workflow`.
+
+## CLI Commands
+
+18 commands: `init`, `adopt`, `feature`, `config`, `task`, `prd`, `seed`, `bdd`, `test`, `status`, `validate`, `hooks`, `review`, `skills`, `issues`, `context`, `gate-check`, `auto-track`.
+
+Key subcommands: `prd check|show`, `seed init|add`, `bdd add|list`, `test run|map`, `feature add|list|status`, `task add|list|next|done`.
+
+Note: `ptsd test map` requires a `@feature:<id>` tag in the BDD file.
 
 ## Workflow
 
-1. `ptsd task next --agent` — get next task (bootstrapping: check tasks.yaml manually)
+1. `ptsd task next --agent` — get next task
 2. Read the linked PRD section, BDD scenarios, seed data
 3. Do the work
 4. **Record progress immediately** in state.yaml / review-status.yaml / tasks.yaml
-5. `ptsd validate --agent` — check before commit (when ptsd exists)
+5. `ptsd validate --agent` — check before commit
 6. Commit with proper `[SCOPE] type: message`
 
 ## Commit Scope Validation

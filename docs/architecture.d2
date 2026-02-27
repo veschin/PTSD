@@ -1,0 +1,30 @@
+sequence: {
+  shape: sequence_diagram
+
+  dev_user: Developer
+  j_claude: "Claude Code\nOpus 4.6"
+  ops_ptsd: "ptsd\nCLI"
+  db_state: ".ptsd/\nartifacts"
+
+  # Session start — ptsd injects pipeline state
+  dev_user -> j_claude: task
+  j_claude -> ops_ptsd: "ptsd context\n--agent"
+  ops_ptsd -> db_state: "read features,\nstate, tasks"
+  db_state -> ops_ptsd: pipeline state
+  ops_ptsd -> j_claude: "next: auth\nstage=seed"
+
+  # Enforcement loop
+  enforce: {
+    label: "loop [every file edit]"
+    j_claude -> ops_ptsd: "gate-check\n(PreToolUse)"
+    ops_ptsd -> j_claude: "allow / block"
+    j_claude -> j_claude: "write file"
+    j_claude -> ops_ptsd: "auto-track\n(PostToolUse)"
+    ops_ptsd -> db_state: advance stage
+  }
+
+  # Commit
+  j_claude -> ops_ptsd: "ptsd validate\n(pre-commit)"
+  ops_ptsd -> j_claude: "pass / fail"
+  j_claude -> dev_user: "commit with\n[SCOPE] type:"
+}
