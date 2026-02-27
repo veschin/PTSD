@@ -44,6 +44,12 @@ tasks:
   - id: T-1
     feature: init
     title: "ptsd init works on already initialized projects (re-init hooks)"
-    status: TODO
+    status: DONE
     priority: A
     description: "InitProject refuses re-init (.ptsd already exists). Add partial re-init: regenerate .claude/settings.json, .claude/hooks/*.sh, .git/hooks/pre-commit, .git/hooks/commit-msg, CLAUDE.md without touching .ptsd/ contents. Either via --hooks flag or auto-detect."
+  - id: T-2
+    feature: skills
+    title: "Wire skills to .claude/skills/, enrich content, update CLAUDE.md"
+    status: DONE
+    priority: B
+    description: "Move skill templates to //go:embed files. Add Common Mistakes section to each. Generate .claude/skills/<name>/SKILL.md for Claude Code discovery. Add skill table to CLAUDE.md template. Drop trigger: frontmatter."
