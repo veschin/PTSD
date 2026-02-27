@@ -67,6 +67,31 @@ func Validate(projectDir string) ([]ValidationError, error) {
 		}
 	}
 
+	// Check review gates per feature
+	for _, f := range features {
+		if f.Status == "planned" || f.Status == "deferred" {
+			continue
+		}
+		if state == nil {
+			continue
+		}
+		fs, ok := state.Features[f.ID]
+		if !ok || fs.Stage == "" {
+			continue
+		}
+		passed, err := CheckReviewGate(projectDir, f.ID, fs.Stage)
+		if err != nil {
+			continue
+		}
+		if !passed {
+			errors = append(errors, ValidationError{
+				Feature:  f.ID,
+				Category: "pipeline",
+				Message:  "review gate not passed for stage " + fs.Stage,
+			})
+		}
+	}
+
 	// Check regressions
 	regressions, _ := CheckRegressions(projectDir)
 	for _, r := range regressions {

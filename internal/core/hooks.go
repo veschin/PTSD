@@ -67,6 +67,21 @@ func ValidateCommit(projectDir string, message string, stagedFiles []string) err
 		}
 	}
 
+	// IMPL is the final pipeline stage — trigger full validation
+	if scope == "IMPL" {
+		validationErrors, err := Validate(projectDir)
+		if err != nil {
+			return fmt.Errorf("err:pipeline %w", err)
+		}
+		if len(validationErrors) > 0 {
+			msgs := make([]string, len(validationErrors))
+			for i, ve := range validationErrors {
+				msgs[i] = ve.Feature + ": " + ve.Message
+			}
+			return fmt.Errorf("err:pipeline validation failed: %s", strings.Join(msgs, "; "))
+		}
+	}
+
 	return nil
 }
 

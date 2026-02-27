@@ -114,24 +114,61 @@ func CheckSeeds(projectDir string) ([]string, error) {
 		return nil, err
 	}
 
-	var missing []string
+	var problems []string
 	for _, f := range features {
 		if f.Status == "planned" || f.Status == "deferred" {
 			continue
 		}
-		seedPath := filepath.Join(projectDir, ".ptsd", "seeds", f.ID, "seed.yaml")
+		seedDir := filepath.Join(projectDir, ".ptsd", "seeds", f.ID)
+		seedPath := filepath.Join(seedDir, "seed.yaml")
 		if _, err := os.Stat(seedPath); os.IsNotExist(err) {
-			missing = append(missing, f.ID)
+			problems = append(problems, f.ID+" has no seed")
+			continue
+		}
+
+		// Verify files listed in manifest exist on disk
+		data, err := os.ReadFile(seedPath)
+		if err != nil {
+			return nil, fmt.Errorf("err:io %w", err)
+		}
+		for _, file := range parseSeedManifestFiles(string(data)) {
+			filePath := filepath.Join(seedDir, file)
+			if _, err := os.Stat(filePath); os.IsNotExist(err) {
+				problems = append(problems, f.ID+" seed manifest references missing file: "+file)
+			}
 		}
 	}
 
-	if len(missing) > 0 {
-		msgs := make([]string, len(missing))
-		for i, m := range missing {
-			msgs[i] = m + " has no seed"
+	if len(problems) > 0 {
+		// Extract feature IDs from problems for backward-compatible return value
+		seen := map[string]bool{}
+		var missing []string
+		for _, f := range features {
+			for _, p := range problems {
+				if strings.HasPrefix(p, f.ID+" ") && !seen[f.ID] {
+					seen[f.ID] = true
+					missing = append(missing, f.ID)
+				}
+			}
 		}
-		return missing, fmt.Errorf("err:pipeline %s", strings.Join(msgs, "; "))
+		return missing, fmt.Errorf("err:pipeline %s", strings.Join(problems, "; "))
 	}
 
 	return nil, nil
+}
+
+// parseSeedManifestFiles extracts file paths from seed.yaml manifest lines like "  - path: foo.json".
+func parseSeedManifestFiles(content string) []string {
+	var files []string
+	for _, line := range strings.Split(content, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "- path: ") {
+			file := strings.TrimPrefix(trimmed, "- path: ")
+			file = strings.TrimSpace(file)
+			if file != "" {
+				files = append(files, file)
+			}
+		}
+	}
+	return files
 }

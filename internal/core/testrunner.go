@@ -152,7 +152,22 @@ func RunTests(projectDir string, featureFilter string) (TestResults, error) {
 		return TestResults{}, fmt.Errorf("err:config no test runner configured")
 	}
 
-	cmd := exec.Command("sh", "-c", cfg.Testing.Runner)
+	runner := cfg.Testing.Runner
+
+	// When a feature filter is specified, extract that feature's test files
+	// from state and append them to the runner command.
+	if featureFilter != "" {
+		testFiles, err := featureTestFiles(projectDir, featureFilter)
+		if err != nil {
+			return TestResults{}, err
+		}
+		if len(testFiles) == 0 {
+			return TestResults{}, fmt.Errorf("err:test no test files mapped for feature %s", featureFilter)
+		}
+		runner = runner + " " + strings.Join(testFiles, " ")
+	}
+
+	cmd := exec.Command("sh", "-c", runner)
 	cmd.Dir = projectDir
 	output, err := cmd.CombinedOutput()
 
@@ -213,6 +228,34 @@ func parseTAPOutput(output string) TestResults {
 		}
 	}
 	return results
+}
+
+// featureTestFiles extracts test file paths mapped to a feature from state.
+// Mappings use the format "bddFile::testFile"; this returns only the test file parts.
+func featureTestFiles(projectDir string, featureID string) ([]string, error) {
+	state, err := LoadState(projectDir)
+	if err != nil {
+		return nil, err
+	}
+	fs, ok := state.Features[featureID]
+	if !ok {
+		return nil, nil
+	}
+	mappings, ok := fs.Tests.([]string)
+	if !ok || len(mappings) == 0 {
+		return nil, nil
+	}
+	var files []string
+	for _, m := range mappings {
+		parts := strings.SplitN(m, "::", 2)
+		if len(parts) == 2 {
+			files = append(files, parts[1])
+		} else {
+			// Plain test file path (no bdd:: prefix)
+			files = append(files, m)
+		}
+	}
+	return files, nil
 }
 
 func updateStateWithResults(projectDir string, featureFilter string, results TestResults) {

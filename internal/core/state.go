@@ -220,7 +220,7 @@ func CheckRegressions(projectDir string) ([]RegressionWarning, error) {
 	}
 
 	var warnings []RegressionWarning
-	stageOrder := map[string]int{"prd": 0, "seed": 1, "bdd": 2, "test": 3, "implemented": 4}
+	stageOrder := map[string]int{"prd": 0, "seed": 1, "bdd": 2, "test": 3, "impl": 4}
 
 	for featureID, fs := range state.Features {
 		currentStageIdx, ok := stageOrder[fs.Stage]
@@ -273,8 +273,8 @@ func CheckRegressions(projectDir string) ([]RegressionWarning, error) {
 					fs.Hashes[c.key] = newHash
 					state.Features[featureID] = fs
 					currentStageIdx = c.stageIdx
-				} else if c.fileType == "test" && fs.Stage == "implemented" {
-					// Test change at implemented = WARN, re-run tests, no downgrade
+				} else if c.fileType == "test" && fs.Stage == "impl" {
+					// Test change at impl = WARN, re-run tests, no downgrade
 					warnings = append(warnings, RegressionWarning{
 						Feature:  featureID,
 						File:     c.path,
@@ -310,6 +310,29 @@ func CheckRegressions(projectDir string) ([]RegressionWarning, error) {
 	}
 
 	return warnings, nil
+}
+
+type ProjectStatusResult struct {
+	Features    map[string]FeatureState
+	Regressions []RegressionWarning
+}
+
+// ProjectStatus returns current feature states and auto-triggers regression detection.
+func ProjectStatus(projectDir string) (ProjectStatusResult, error) {
+	state, err := LoadState(projectDir)
+	if err != nil {
+		return ProjectStatusResult{}, err
+	}
+
+	regressions, _ := CheckRegressions(projectDir)
+
+	// Reload state after regression check (CheckRegressions may update stages/hashes).
+	state, err = LoadState(projectDir)
+	if err != nil {
+		return ProjectStatusResult{}, err
+	}
+
+	return ProjectStatusResult{Features: state.Features, Regressions: regressions}, nil
 }
 
 func writeState(projectDir string, state *State) error {

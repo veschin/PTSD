@@ -119,6 +119,106 @@ func TestScoreAboveThresholdAllowsProgression(t *testing.T) {
 	}
 }
 
+func TestRecordReviewUpdatesReviewStatus(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "user-auth:planned")
+	ptsdDir := filepath.Join(dir, ".ptsd")
+
+	// Create ptsd.yaml with review.min_score = 7
+	configPath := filepath.Join(ptsdDir, "ptsd.yaml")
+	configContent := "review:\n  min_score: 7\n"
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create initial state.yaml
+	statePath := filepath.Join(ptsdDir, "state.yaml")
+	stateContent := "features:\n  user-auth:\n    stage: prd\n    hashes: {}\n    scores: {}\n"
+	if err := os.WriteFile(statePath, []byte(stateContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create initial review-status.yaml
+	rsPath := filepath.Join(ptsdDir, "review-status.yaml")
+	rsContent := "features:\n  user-auth:\n    stage: prd\n    tests: absent\n    review: pending\n    issues: 0\n"
+	if err := os.WriteFile(rsPath, []byte(rsContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Record a passing review (score 8 >= min 7)
+	err := RecordReview(dir, "user-auth", "prd", 8)
+	if err != nil {
+		t.Fatalf("RecordReview failed: %v", err)
+	}
+
+	// Verify review-status.yaml was updated to passed
+	data, err := os.ReadFile(rsPath)
+	if err != nil {
+		t.Fatalf("cannot read review-status.yaml: %v", err)
+	}
+	content := string(data)
+
+	if !strings.Contains(content, "review: passed") {
+		t.Errorf("review-status.yaml should contain 'review: passed', got:\n%s", content)
+	}
+	if !strings.Contains(content, "issues: 0") {
+		t.Errorf("review-status.yaml should contain 'issues: 0', got:\n%s", content)
+	}
+
+	// Now record a failing review (score 3 < min 7)
+	err = RecordReview(dir, "user-auth", "prd", 3)
+	if err != nil {
+		t.Fatalf("RecordReview failed: %v", err)
+	}
+
+	data, err = os.ReadFile(rsPath)
+	if err != nil {
+		t.Fatalf("cannot read review-status.yaml: %v", err)
+	}
+	content = string(data)
+
+	if !strings.Contains(content, "review: failed") {
+		t.Errorf("review-status.yaml should contain 'review: failed', got:\n%s", content)
+	}
+	if !strings.Contains(content, "issues: 1") {
+		t.Errorf("review-status.yaml should contain 'issues: 1', got:\n%s", content)
+	}
+	if !strings.Contains(content, "issues_list:") {
+		t.Errorf("review-status.yaml should contain 'issues_list:', got:\n%s", content)
+	}
+}
+
+func TestRecordReviewCreatesReviewStatusIfMissing(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "user-auth:planned")
+	ptsdDir := filepath.Join(dir, ".ptsd")
+
+	// Create state.yaml but NO review-status.yaml
+	statePath := filepath.Join(ptsdDir, "state.yaml")
+	stateContent := "features:\n  user-auth:\n    stage: impl\n    hashes: {}\n    scores: {}\n"
+	if err := os.WriteFile(statePath, []byte(stateContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := RecordReview(dir, "user-auth", "impl", 9)
+	if err != nil {
+		t.Fatalf("RecordReview failed: %v", err)
+	}
+
+	// Verify review-status.yaml was created
+	rsPath := filepath.Join(ptsdDir, "review-status.yaml")
+	data, err := os.ReadFile(rsPath)
+	if err != nil {
+		t.Fatalf("review-status.yaml should have been created: %v", err)
+	}
+	content := string(data)
+
+	if !strings.Contains(content, "user-auth:") {
+		t.Errorf("review-status.yaml should contain 'user-auth:', got:\n%s", content)
+	}
+	if !strings.Contains(content, "review: passed") {
+		t.Errorf("review-status.yaml should contain 'review: passed', got:\n%s", content)
+	}
+}
+
 func TestAutoRedoTaskOnLowScore(t *testing.T) {
 	dir := setupProjectWithFeatures(t, "user-auth:planned")
 	ptsdDir := filepath.Join(dir, ".ptsd")

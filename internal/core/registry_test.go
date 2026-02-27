@@ -165,6 +165,26 @@ func TestUpdateFeatureStatusImplementedRequiresPassingTests(t *testing.T) {
 	}
 }
 
+func TestUpdateFeatureStatusImplementedSucceedsWithPassingTests(t *testing.T) {
+	dir := t.TempDir()
+	setupFeaturesYAML(t, dir)
+	addFeatures(t, dir, "user-auth")
+	setTestsPassing(t, dir, "user-auth")
+
+	err := UpdateFeatureStatus(dir, "user-auth", "implemented")
+	if err != nil {
+		t.Fatalf("expected no error when tests pass, got: %v", err)
+	}
+
+	features, err := ListFeatures(dir, "")
+	if err != nil {
+		t.Fatalf("ListFeatures failed: %v", err)
+	}
+	if len(features) != 1 || features[0].Status != "implemented" {
+		t.Errorf("expected status 'implemented', got %q", features[0].Status)
+	}
+}
+
 func TestRemoveFeature(t *testing.T) {
 	dir := t.TempDir()
 	setupFeaturesYAML(t, dir)
@@ -245,6 +265,15 @@ func setTestsFailing(t *testing.T, dir string, id string) {
 	t.Helper()
 	statePath := filepath.Join(dir, ".ptsd", "state.yaml")
 	stateContent := "features:\n  " + id + ":\n    tests: 2\n    test_status: failing\n"
+	if err := os.WriteFile(statePath, []byte(stateContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func setTestsPassing(t *testing.T, dir string, id string) {
+	t.Helper()
+	statePath := filepath.Join(dir, ".ptsd", "state.yaml")
+	stateContent := "features:\n  " + id + ":\n    tests: 2\n    test_status: passing\n"
 	if err := os.WriteFile(statePath, []byte(stateContent), 0644); err != nil {
 		t.Fatal(err)
 	}

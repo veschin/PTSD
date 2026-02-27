@@ -64,13 +64,94 @@ func TestIMPLScopeTriggersFullValidation(t *testing.T) {
 	dir := t.TempDir()
 	setupPtsdConfig(t, dir, []string{"tests/**/*.test.ts"})
 
+	// Set up features.yaml with an active feature
+	ptsdDir := filepath.Join(dir, ".ptsd")
+	featuresContent := "- id: auth\n  title: Authentication\n  status: active\n"
+	if err := os.WriteFile(filepath.Join(ptsdDir, "features.yaml"), []byte(featuresContent), 0644); err != nil {
+		t.Fatalf("failed to write features.yaml: %v", err)
+	}
+
+	// Create BDD without seed — pipeline violation
+	bddDir := filepath.Join(ptsdDir, "bdd")
+	if err := os.MkdirAll(bddDir, 0755); err != nil {
+		t.Fatalf("failed to create bdd dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(bddDir, "auth.feature"), []byte("Feature: Auth\n"), 0644); err != nil {
+		t.Fatalf("failed to write bdd file: %v", err)
+	}
+
+	// Create PRD with anchor so CheckPRDAnchors does not fail on missing file
+	docsDir := filepath.Join(ptsdDir, "docs")
+	if err := os.MkdirAll(docsDir, 0755); err != nil {
+		t.Fatalf("failed to create docs dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(docsDir, "PRD.md"), []byte("<!-- feature:auth -->\n"), 0644); err != nil {
+		t.Fatalf("failed to write PRD.md: %v", err)
+	}
+
+	// IMPL scope must trigger full Validate which catches "bdd but no seed"
 	stagedFiles := []string{"src/auth.go"}
 	err := ValidateCommit(dir, "[IMPL] feat: user auth", stagedFiles)
-	// IMPL scope should trigger ptsd validate - for this test we just ensure no panic
-	// and that it processes correctly (actual validation may fail if ptsd not available)
+	if err == nil {
+		t.Fatal("expected IMPL scope to trigger full validation and catch pipeline violation")
+	}
+	if !containsErr(err, "err:pipeline") {
+		t.Fatalf("expected err:pipeline, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "has bdd but no seed") {
+		t.Fatalf("expected 'has bdd but no seed' violation, got: %v", err)
+	}
+}
+
+func TestIMPLScopePassesWhenPipelineClean(t *testing.T) {
+	dir := t.TempDir()
+	setupPtsdConfig(t, dir, []string{"tests/**/*.test.ts"})
+
+	// Set up features.yaml with an active feature
+	ptsdDir := filepath.Join(dir, ".ptsd")
+	featuresContent := "- id: auth\n  title: Authentication\n  status: active\n"
+	if err := os.WriteFile(filepath.Join(ptsdDir, "features.yaml"), []byte(featuresContent), 0644); err != nil {
+		t.Fatalf("failed to write features.yaml: %v", err)
+	}
+
+	// Create seed + BDD + a test file — pipeline is clean
+	seedDir := filepath.Join(ptsdDir, "seeds", "auth")
+	if err := os.MkdirAll(seedDir, 0755); err != nil {
+		t.Fatalf("failed to create seed dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(seedDir, "seed.yaml"), []byte("data: test\n"), 0644); err != nil {
+		t.Fatalf("failed to write seed file: %v", err)
+	}
+
+	bddDir := filepath.Join(ptsdDir, "bdd")
+	if err := os.MkdirAll(bddDir, 0755); err != nil {
+		t.Fatalf("failed to create bdd dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(bddDir, "auth.feature"), []byte("Feature: Auth\n"), 0644); err != nil {
+		t.Fatalf("failed to write bdd file: %v", err)
+	}
+
+	// Create a test file so "has bdd but no tests" is not triggered
+	if err := os.MkdirAll(filepath.Join(dir, "internal"), 0755); err != nil {
+		t.Fatalf("failed to create internal dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "internal", "auth_test.go"), []byte("package internal\n"), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	// Create PRD with anchor for the feature
+	docsDir := filepath.Join(ptsdDir, "docs")
+	if err := os.MkdirAll(docsDir, 0755); err != nil {
+		t.Fatalf("failed to create docs dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(docsDir, "PRD.md"), []byte("<!-- feature:auth -->\n"), 0644); err != nil {
+		t.Fatalf("failed to write PRD.md: %v", err)
+	}
+
+	stagedFiles := []string{"src/auth.go"}
+	err := ValidateCommit(dir, "[IMPL] feat: user auth", stagedFiles)
 	if err != nil {
-		// Could be validation error or success depending on environment
-		t.Logf("IMPL validation result: %v", err)
+		t.Fatalf("expected IMPL scope to pass with clean pipeline, got: %v", err)
 	}
 }
 

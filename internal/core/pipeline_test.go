@@ -3,6 +3,7 @@ package core
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -150,6 +151,118 @@ func TestMultipleErrorsReported(t *testing.T) {
 	}
 	if len(errors) < 3 {
 		t.Errorf("expected at least 3 errors, got %d: %v", len(errors), errors)
+	}
+}
+
+func TestValidateCatchesReviewGateFailure(t *testing.T) {
+	dir := setupProjectWithFeature(t, "user-auth", func(base string) {
+		writeFeaturesYAML(t, base, `- id: user-auth
+  title: "User Auth"
+  status: active
+`)
+		createPRDAnchor(t, base, "user-auth")
+		createBDD(t, base, "user-auth")
+		createSeed(t, base, "user-auth")
+
+		// Config with min_score = 7
+		os.WriteFile(filepath.Join(base, "ptsd.yaml"), []byte("review:\n  min_score: 7\n"), 0644)
+
+		// State with stage=prd and low review score
+		os.WriteFile(filepath.Join(base, "state.yaml"), []byte(
+			"features:\n  user-auth:\n    stage: prd\n    hashes: {}\n    scores:\n      prd:\n        score: 3\n        at: \"2026-02-26T10:00:00Z\"\n",
+		), 0644)
+
+		// Create test file so other checks pass
+		testDir := filepath.Join(base, "..", "internal", "auth")
+		os.MkdirAll(testDir, 0755)
+		os.WriteFile(filepath.Join(testDir, "auth_test.go"), []byte("package auth\nimport \"testing\"\nfunc TestAuth(t *testing.T) {}\n"), 0644)
+	})
+
+	errors, err := Validate(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertHasError(t, errors, "user-auth", "pipeline", "review gate not passed")
+}
+
+func TestValidatePassesWithSufficientReviewScore(t *testing.T) {
+	dir := setupProjectWithFeature(t, "user-auth", func(base string) {
+		writeFeaturesYAML(t, base, `- id: user-auth
+  title: "User Auth"
+  status: active
+`)
+		createPRDAnchor(t, base, "user-auth")
+		createBDD(t, base, "user-auth")
+		createSeed(t, base, "user-auth")
+
+		// Config with min_score = 7
+		os.WriteFile(filepath.Join(base, "ptsd.yaml"), []byte("review:\n  min_score: 7\n"), 0644)
+
+		// State with stage=prd and passing review score
+		os.WriteFile(filepath.Join(base, "state.yaml"), []byte(
+			"features:\n  user-auth:\n    stage: prd\n    hashes: {}\n    scores:\n      prd:\n        score: 8\n        at: \"2026-02-26T10:00:00Z\"\n",
+		), 0644)
+
+		// Create test file so other checks pass
+		testDir := filepath.Join(base, "..", "internal", "auth")
+		os.MkdirAll(testDir, 0755)
+		os.WriteFile(filepath.Join(testDir, "auth_test.go"), []byte("package auth\nimport \"testing\"\nfunc TestAuth(t *testing.T) {}\n"), 0644)
+	})
+
+	errors, err := Validate(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, e := range errors {
+		if e.Feature == "user-auth" && strings.Contains(e.Message, "review gate") {
+			t.Errorf("expected no review gate error with passing score, got: %v", e)
+		}
+	}
+}
+
+func TestValidateAutoTriggersRegressionDetection(t *testing.T) {
+	dir := t.TempDir()
+	base := filepath.Join(dir, ".ptsd")
+	createDirs(t, base)
+
+	writeFeaturesYAML(t, base, `- id: user-auth
+  title: "User Auth"
+  status: active
+`)
+	createPRDAnchor(t, base, "user-auth")
+	createBDD(t, base, "user-auth")
+	createSeed(t, base, "user-auth")
+
+	// Create test file
+	testDir := filepath.Join(dir, "internal", "core")
+	os.MkdirAll(testDir, 0755)
+	os.WriteFile(filepath.Join(testDir, "user-auth_test.go"), []byte("package core\n"), 0644)
+
+	// Set state with known hashes at impl stage
+	setupFeatureFiles(t, dir, "user-auth", "seed", "bdd", "test")
+	setState(t, dir, "user-auth", "impl", nil, nil)
+
+	// Modify PRD to trigger regression
+	prdPath := filepath.Join(base, "docs", "PRD.md")
+	f, _ := os.OpenFile(prdPath, os.O_APPEND|os.O_WRONLY, 0644)
+	f.WriteString("\n## New section\n")
+	f.Close()
+
+	errors, err := Validate(dir)
+	if err != nil {
+		t.Fatalf("Validate failed: %v", err)
+	}
+
+	found := false
+	for _, e := range errors {
+		if e.Feature == "user-auth" && e.Category == "pipeline" {
+			if len(e.Message) > 0 {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Error("Validate should auto-trigger regression detection and report regressions")
 	}
 }
 

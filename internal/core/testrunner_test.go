@@ -149,7 +149,9 @@ func TestRunTestsForFeature(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Script echoes its arguments so we can verify filter was applied
 	testScript := `#!/bin/sh
+echo "# args: $@"
 echo "ok 1 - test pass"
 echo "not ok 2 - test fail"
 echo "# Failed at tests/auth.test.ts:42"
@@ -172,7 +174,7 @@ testing:
 	stateYAML := `features:
   user-auth:
     tests:
-      - tests/auth.test.ts
+      - .ptsd/bdd/user-auth.feature::tests/auth.test.ts
 `
 	if err := os.WriteFile(filepath.Join(ptsdDir, "state.yaml"), []byte(stateYAML), 0644); err != nil {
 		t.Fatal(err)
@@ -201,7 +203,9 @@ func TestRunAllTests(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Script echoes args; with no filter, no args should be passed
 	testScript := `#!/bin/sh
+echo "# args: $@"
 echo "ok 1 - pass"
 echo "ok 2 - pass"
 exit 0
@@ -223,10 +227,10 @@ testing:
 	stateYAML := `features:
   user-auth:
     tests:
-      - tests/auth.test.ts
+      - .ptsd/bdd/user-auth.feature::tests/auth.test.ts
   data-sync:
     tests:
-      - tests/sync.test.ts
+      - .ptsd/bdd/data-sync.feature::tests/sync.test.ts
 `
 	if err := os.WriteFile(filepath.Join(ptsdDir, "state.yaml"), []byte(stateYAML), 0644); err != nil {
 		t.Fatal(err)
@@ -239,6 +243,128 @@ testing:
 
 	if results.Total == 0 {
 		t.Error("expected tests to run for all features")
+	}
+}
+
+func TestRunTestsFilterPassesOnlyFeatureFiles(t *testing.T) {
+	dir := t.TempDir()
+	ptsdDir := filepath.Join(dir, ".ptsd")
+	if err := os.MkdirAll(ptsdDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "tests"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Script writes received arguments to a file for verification
+	testScript := `#!/bin/sh
+echo "$@" > "` + filepath.Join(dir, "received_args.txt") + `"
+echo "ok 1 - pass"
+exit 0
+`
+	if err := os.WriteFile(filepath.Join(dir, "tests", "run.sh"), []byte(testScript), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	configYAML := `project:
+  name: TestApp
+testing:
+  runner: ./tests/run.sh
+`
+	if err := os.WriteFile(filepath.Join(ptsdDir, "ptsd.yaml"), []byte(configYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Two features with different test files
+	stateYAML := `features:
+  user-auth:
+    tests:
+      - .ptsd/bdd/user-auth.feature::tests/auth.test.ts
+  data-sync:
+    tests:
+      - .ptsd/bdd/data-sync.feature::tests/sync.test.ts
+`
+	if err := os.WriteFile(filepath.Join(ptsdDir, "state.yaml"), []byte(stateYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Run with feature filter "user-auth"
+	_, err := RunTests(dir, "user-auth")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	argsBytes, err := os.ReadFile(filepath.Join(dir, "received_args.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	args := strings.TrimSpace(string(argsBytes))
+
+	// Should contain only user-auth's test file, not data-sync's
+	if !strings.Contains(args, "tests/auth.test.ts") {
+		t.Errorf("expected runner to receive tests/auth.test.ts, got: %q", args)
+	}
+	if strings.Contains(args, "tests/sync.test.ts") {
+		t.Errorf("runner should NOT receive tests/sync.test.ts when filtering by user-auth, got: %q", args)
+	}
+}
+
+func TestRunTestsNoFilterRunsAll(t *testing.T) {
+	dir := t.TempDir()
+	ptsdDir := filepath.Join(dir, ".ptsd")
+	if err := os.MkdirAll(ptsdDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "tests"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Script writes received arguments to a file for verification
+	testScript := `#!/bin/sh
+echo "$@" > "` + filepath.Join(dir, "received_args.txt") + `"
+echo "ok 1 - pass"
+exit 0
+`
+	if err := os.WriteFile(filepath.Join(dir, "tests", "run.sh"), []byte(testScript), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	configYAML := `project:
+  name: TestApp
+testing:
+  runner: ./tests/run.sh
+`
+	if err := os.WriteFile(filepath.Join(ptsdDir, "ptsd.yaml"), []byte(configYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	stateYAML := `features:
+  user-auth:
+    tests:
+      - .ptsd/bdd/user-auth.feature::tests/auth.test.ts
+  data-sync:
+    tests:
+      - .ptsd/bdd/data-sync.feature::tests/sync.test.ts
+`
+	if err := os.WriteFile(filepath.Join(ptsdDir, "state.yaml"), []byte(stateYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Run without feature filter — should run all
+	_, err := RunTests(dir, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	argsBytes, err := os.ReadFile(filepath.Join(dir, "received_args.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	args := strings.TrimSpace(string(argsBytes))
+
+	// No filter = no file arguments appended to runner
+	if args != "" {
+		t.Errorf("expected no arguments when running without filter, got: %q", args)
 	}
 }
 
@@ -279,7 +405,7 @@ testing:
 	stateYAML := `features:
   user-auth:
     tests:
-      - tests/auth.test.ts
+      - .ptsd/bdd/user-auth.feature::tests/auth.test.ts
 `
 	if err := os.WriteFile(filepath.Join(ptsdDir, "state.yaml"), []byte(stateYAML), 0644); err != nil {
 		t.Fatal(err)
@@ -324,7 +450,7 @@ func TestNoTestRunnerConfigured(t *testing.T) {
 	stateYAML := `features:
   user-auth:
     tests:
-      - tests/auth.test.ts
+      - .ptsd/bdd/user-auth.feature::tests/auth.test.ts
 `
 	if err := os.WriteFile(filepath.Join(ptsdDir, "state.yaml"), []byte(stateYAML), 0644); err != nil {
 		t.Fatal(err)

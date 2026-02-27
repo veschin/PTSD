@@ -119,3 +119,52 @@ func TestCheckSeedsAllPresent(t *testing.T) {
 	}
 }
 
+func TestCheckSeedsManifestFilesMissing(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "user-auth:in-progress")
+	if err := InitSeed(dir, "user-auth"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Write manifest referencing files that do not exist on disk
+	seedPath := filepath.Join(dir, ".ptsd", "seeds", "user-auth", "seed.yaml")
+	manifest := "feature: user-auth\nfiles:\n  - path: missing.json\n    type: data\n  - path: gone.csv\n    type: fixture\n"
+	if err := os.WriteFile(seedPath, []byte(manifest), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	missing, err := CheckSeeds(dir)
+	if err == nil {
+		t.Fatal("expected error for manifest with missing files")
+	}
+	if !strings.Contains(err.Error(), "missing file") {
+		t.Errorf("expected 'missing file' in error, got: %v", err)
+	}
+	if len(missing) != 1 || missing[0] != "user-auth" {
+		t.Errorf("expected [user-auth] in missing, got: %v", missing)
+	}
+}
+
+func TestCheckSeedsManifestFilesAllPresent(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "user-auth:in-progress")
+	if err := InitSeed(dir, "user-auth"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Add a real file via AddSeedFile so both manifest and file exist
+	srcFile := filepath.Join(dir, "data.json")
+	if err := os.WriteFile(srcFile, []byte(`{"ok":true}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := AddSeedFile(dir, "user-auth", srcFile, "data", "test"); err != nil {
+		t.Fatal(err)
+	}
+
+	missing, err := CheckSeeds(dir)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if len(missing) != 0 {
+		t.Errorf("expected no missing seeds, got: %v", missing)
+	}
+}
+

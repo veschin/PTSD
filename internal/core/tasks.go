@@ -130,15 +130,36 @@ func UpdateTask(projectDir string, id string, status string) error {
 	return saveTasks(projectDir, tasks)
 }
 
+type TaskNextResult struct {
+	Tasks       []Task
+	Regressions []RegressionWarning
+}
+
+// taskUnblocked returns true if the task's feature has reached the impl stage
+// (or has no state entry / no stage set). Tasks for features still progressing
+// through earlier pipeline stages (prd, seed, bdd, test) are blocked.
+func taskUnblocked(t Task, state *State) bool {
+	if state == nil || t.Feature == "" {
+		return true
+	}
+	fs, ok := state.Features[t.Feature]
+	if !ok || fs.Stage == "" || fs.Stage == "impl" {
+		return true
+	}
+	return false
+}
+
 func TaskNext(projectDir string, limit int) ([]Task, error) {
 	tasks, err := loadTasks(projectDir)
 	if err != nil {
 		return nil, err
 	}
 
+	state, _ := LoadState(projectDir)
+
 	var todo []Task
 	for _, t := range tasks {
-		if t.Status == "TODO" {
+		if t.Status == "TODO" && taskUnblocked(t, state) {
 			todo = append(todo, t)
 		}
 	}
@@ -152,6 +173,18 @@ func TaskNext(projectDir string, limit int) ([]Task, error) {
 	}
 
 	return todo, nil
+}
+
+// TaskNextWithRegressions returns the next tasks and auto-triggers regression detection.
+func TaskNextWithRegressions(projectDir string, limit int) (TaskNextResult, error) {
+	tasks, err := TaskNext(projectDir, limit)
+	if err != nil {
+		return TaskNextResult{}, err
+	}
+
+	regressions, _ := CheckRegressions(projectDir)
+
+	return TaskNextResult{Tasks: tasks, Regressions: regressions}, nil
 }
 
 func loadTasks(projectDir string) ([]Task, error) {

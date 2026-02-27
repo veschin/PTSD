@@ -50,7 +50,7 @@ func TestStoreHashesOnSync(t *testing.T) {
 func TestBDDChangeForImplementedFeature(t *testing.T) {
 	dir := t.TempDir()
 	setupFeatureFiles(t, dir, "user-auth", "seed", "bdd", "test")
-	setState(t, dir, "user-auth", "implemented", nil, nil)
+	setState(t, dir, "user-auth", "impl", nil, nil)
 
 	// Change BDD file
 	bddPath := filepath.Join(dir, ".ptsd", "bdd", "user-auth.feature")
@@ -80,8 +80,8 @@ func TestBDDChangeForImplementedFeature(t *testing.T) {
 
 	// BDD change = WARN only per PRD, no stage downgrade
 	state, _ := LoadState(dir)
-	if state.Features["user-auth"].Stage != "implemented" {
-		t.Errorf("stage should remain implemented for bdd warn, got %s", state.Features["user-auth"].Stage)
+	if state.Features["user-auth"].Stage != "impl" {
+		t.Errorf("stage should remain impl for bdd warn, got %s", state.Features["user-auth"].Stage)
 	}
 }
 
@@ -190,6 +190,54 @@ func TestStoreReviewScores(t *testing.T) {
 	}
 	if score.Timestamp.Before(before) {
 		t.Error("timestamp should be after record call")
+	}
+}
+
+func TestProjectStatusAutoTriggersRegressions(t *testing.T) {
+	dir := t.TempDir()
+	setupFeatureFiles(t, dir, "user-auth", "seed", "bdd", "test")
+	setState(t, dir, "user-auth", "impl", nil, nil)
+
+	// Modify BDD to trigger a regression warning
+	bddPath := filepath.Join(dir, ".ptsd", "bdd", "user-auth.feature")
+	appendFile(t, bddPath, "\n# modified scenario")
+
+	result, err := ProjectStatus(dir)
+	if err != nil {
+		t.Fatalf("ProjectStatus failed: %v", err)
+	}
+
+	if len(result.Regressions) == 0 {
+		t.Fatal("ProjectStatus should auto-trigger regression detection")
+	}
+
+	found := false
+	for _, r := range result.Regressions {
+		if r.Feature == "user-auth" && r.FileType == "bdd" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected bdd regression for user-auth from ProjectStatus")
+	}
+
+	if _, ok := result.Features["user-auth"]; !ok {
+		t.Error("ProjectStatus should return feature states")
+	}
+}
+
+func TestProjectStatusNoRegressionsWhenClean(t *testing.T) {
+	dir := t.TempDir()
+	setupFeatureFiles(t, dir, "user-auth", "seed", "bdd", "test")
+	setState(t, dir, "user-auth", "bdd", nil, nil)
+
+	result, err := ProjectStatus(dir)
+	if err != nil {
+		t.Fatalf("ProjectStatus failed: %v", err)
+	}
+
+	if len(result.Regressions) != 0 {
+		t.Errorf("expected no regressions for clean project, got %d", len(result.Regressions))
 	}
 }
 
