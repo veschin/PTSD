@@ -25,11 +25,42 @@ Feature: Project Initialization
     Then exit code is 3
     And output contains "err:config git repository required"
 
-  Scenario: Init refuses if .ptsd already exists
-    Given a directory with existing .ptsd/
+  Scenario: Re-init existing project regenerates hooks and skills
+    Given a directory with existing .ptsd/ from previous init
     When I run "ptsd init"
-    Then exit code is 1
-    And output contains "err:validation .ptsd already exists"
+    Then exit code is 0
+    And .git/hooks/pre-commit is regenerated
+    And .git/hooks/commit-msg is regenerated
+    And .claude/hooks/ scripts are regenerated
+    And .claude/settings.json is regenerated
+    And .ptsd/skills/ files are regenerated
+
+  Scenario: Re-init preserves .ptsd/ data files
+    Given a directory with existing .ptsd/ containing custom data
+    When I run "ptsd init"
+    Then .ptsd/features.yaml is unchanged
+    And .ptsd/state.yaml is unchanged
+    And .ptsd/tasks.yaml is unchanged
+    And .ptsd/review-status.yaml is unchanged
+    And .ptsd/docs/PRD.md is unchanged
+    And .ptsd/ptsd.yaml is unchanged
+
+  Scenario: Re-init updates CLAUDE.md ptsd section only
+    Given a directory with CLAUDE.md containing ptsd markers and user content
+    When I run "ptsd init"
+    Then content between <!-- ---ptsd--- --> markers is replaced with latest template
+    And user content outside markers is preserved
+
+  Scenario: Re-init creates CLAUDE.md section if markers absent
+    Given a directory with CLAUDE.md that has no ptsd markers
+    When I run "ptsd init"
+    Then <!-- ---ptsd--- --> markers with template content are appended to CLAUDE.md
+    And existing file content is preserved above markers
+
+  Scenario: Re-init on project without CLAUDE.md creates file with markers
+    Given a directory with .ptsd/ but no CLAUDE.md
+    When I run "ptsd init"
+    Then CLAUDE.md is created with <!-- ---ptsd--- --> markers wrapping template content
 
   Scenario: Init generates skills
     Given an empty directory with git initialized
