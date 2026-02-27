@@ -3,11 +3,3 @@ issues:
     category: config
     summary: "stage names inconsistent across modules (test/tests, implemented/impl)"
     fix: "use canonical names from CLAUDE.md: prd, seed, bdd, tests, impl"
-  - id: glm-clean-deletes-results
-    category: llm
-    summary: "glm clean --days 0 deletes output files before they can be read"
-    fix: "read glm results BEFORE running glm clean"
-  - id: worktree-cwd-leak
-    category: env
-    summary: "git operations run in worktree cwd instead of main repo"
-    fix: "always use absolute paths or cd to main repo before git commit/push"
