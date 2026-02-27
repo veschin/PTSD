@@ -61,13 +61,13 @@ func ListIssues(projectDir string, categoryFilter string) ([]Issue, error) {
 // AddIssue validates and appends a new issue to .ptsd/issues.yaml.
 func AddIssue(projectDir string, issue Issue) error {
 	if !validIssueCategories[issue.Category] {
-		return fmt.Errorf("err:validation invalid category %q: must be env|access|io|config|test|llm", issue.Category)
+		return fmt.Errorf("err:user invalid category %q: must be env|access|io|config|test|llm", issue.Category)
 	}
 	if strings.TrimSpace(issue.Summary) == "" {
-		return fmt.Errorf("err:validation summary required")
+		return fmt.Errorf("err:user summary required")
 	}
 	if strings.TrimSpace(issue.Fix) == "" {
-		return fmt.Errorf("err:validation fix required")
+		return fmt.Errorf("err:user fix required")
 	}
 
 	issues, err := LoadIssues(projectDir)

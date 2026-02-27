@@ -135,7 +135,7 @@ func TestAddIssueInvalidCategory(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid category")
 	}
-	if err.Error() != `err:validation invalid category "typo": must be env|access|io|config|test|llm` {
+	if err.Error() != `err:user invalid category "typo": must be env|access|io|config|test|llm` {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
@@ -157,7 +157,7 @@ func TestAddIssueMissingSummary(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing summary")
 	}
-	if err.Error() != "err:validation summary required" {
+	if err.Error() != "err:user summary required" {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
@@ -179,7 +179,7 @@ func TestAddIssueMissingFix(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing fix")
 	}
-	if err.Error() != "err:validation fix required" {
+	if err.Error() != "err:user fix required" {
 		t.Errorf("unexpected error: %v", err)
 	}
 }

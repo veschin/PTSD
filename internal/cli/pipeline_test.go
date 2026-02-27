@@ -757,3 +757,73 @@ func TestRunSeedAddWithTypeAndDescription(t *testing.T) {
 		t.Errorf("expected manifest to contain description 'test description', got:\n%s", manifest)
 	}
 }
+
+// --- RunPrd show ---
+
+// TestRunPrdShow extracts a PRD section for a feature.
+func TestRunPrdShow(t *testing.T) {
+	dir := setupPipelineProject(t)
+	chdirTo(t, dir)
+
+	prdContent := `# PRD Document
+<!-- feature:user-auth -->
+User authentication section
+Login endpoint
+Logout endpoint
+
+<!-- feature:catalog -->
+Catalog section
+List products
+`
+	if err := os.MkdirAll(filepath.Join(dir, ".ptsd", "docs"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".ptsd", "docs", "PRD.md"), []byte(prdContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	out := captureStdout(t, func() {
+		code := RunPrd([]string{"show", "user-auth"}, true)
+		if code != 0 {
+			t.Errorf("expected exit 0, got %d", code)
+		}
+	})
+
+	if !strings.Contains(out, "feature:user-auth") {
+		t.Errorf("expected feature:user-auth in output, got: %s", out)
+	}
+	if !strings.Contains(out, "lines:") {
+		t.Errorf("expected line numbers in output, got: %s", out)
+	}
+	if !strings.Contains(out, "authentication") {
+		t.Errorf("expected content in output, got: %s", out)
+	}
+}
+
+// TestRunPrdShowMissingFeature tests error when feature doesn't exist in PRD.
+func TestRunPrdShowMissingFeature(t *testing.T) {
+	dir := setupPipelineProject(t)
+	chdirTo(t, dir)
+
+	prdContent := `# PRD Document
+<!-- feature:catalog -->
+Catalog section
+`
+	if err := os.MkdirAll(filepath.Join(dir, ".ptsd", "docs"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".ptsd", "docs", "PRD.md"), []byte(prdContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	out := captureStdout(t, func() {
+		code := RunPrd([]string{"show", "user-auth"}, true)
+		if code == 0 {
+			t.Errorf("expected non-zero exit, got 0")
+		}
+	})
+
+	if !strings.Contains(out, "err:") {
+		t.Errorf("expected error in output, got: %s", out)
+	}
+}

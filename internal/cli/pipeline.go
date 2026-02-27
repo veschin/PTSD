@@ -9,7 +9,7 @@ import (
 	"github.com/veschin/ptsd/internal/render"
 )
 
-// RunPrd handles: ptsd prd check
+// RunPrd handles: ptsd prd check | ptsd prd show <feature>
 func RunPrd(args []string, agentMode bool) int {
 	if len(args) == 0 {
 		fmt.Fprintln(os.Stderr, "err:user usage: ptsd prd check")
@@ -37,6 +37,27 @@ func RunPrd(args []string, agentMode bool) int {
 			fmt.Fprintf(os.Stderr, "err:pipeline %s %s\n", e.Type, e.FeatureID)
 		}
 		return 1
+	case "show":
+		if len(args) < 2 {
+			fmt.Fprintln(os.Stderr, "err:user usage: ptsd prd show <feature>")
+			return 2
+		}
+		featureID := args[1]
+		dir, err := os.Getwd()
+		if err != nil {
+			return coreError(agentMode, err)
+		}
+		section, err := core.ExtractPRDSection(dir, featureID)
+		if err != nil {
+			return coreError(agentMode, err)
+		}
+		if agentMode {
+			fmt.Printf("feature:%s lines:%d-%d\n", section.FeatureID, section.StartLine, section.EndLine)
+			fmt.Println(section.Content)
+		} else {
+			fmt.Printf("Feature: %s (lines %d-%d)\n\n%s\n", section.FeatureID, section.StartLine, section.EndLine, section.Content)
+		}
+		return 0
 	default:
 		fmt.Fprintf(os.Stderr, "err:user unknown prd subcommand: %s\n", args[0])
 		return 2

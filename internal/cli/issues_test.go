@@ -103,16 +103,15 @@ func TestRunIssues_Add_MissingArgs(t *testing.T) {
 }
 
 // TestRunIssues_Add_InvalidCategory verifies exit code for an invalid category.
-// Note: BDD (common-issues.feature) says exit 2, but core.AddIssue returns err:validation
-// which maps to exit 1 via coreError. The test follows the actual implementation.
+// BDD (common-issues.feature) says exit 2.
 func TestRunIssues_Add_InvalidCategory(t *testing.T) {
 	_, cleanup := setupIssuesProject(t)
 	defer cleanup()
 
 	code := RunIssues([]string{"add", "test-id", "typo", "summary", "fix"}, true)
-	// core.AddIssue returns err:validation → errCategoryCode("validation") = 1
-	if code != 1 {
-		t.Errorf("expected exit code 1 for invalid category (err:validation), got %d", code)
+	// core.AddIssue returns err:user → errCategoryCode("user") = 2
+	if code != 2 {
+		t.Errorf("expected exit code 2 for invalid category (err:user), got %d", code)
 	}
 }
 
@@ -261,25 +260,25 @@ func TestRunIssues_Add_AllValidCategories(t *testing.T) {
 	}
 }
 
-// TestRunIssues_Add_EmptySummary verifies exit 1 for empty summary.
+// TestRunIssues_Add_EmptySummary verifies exit 2 for empty summary.
 func TestRunIssues_Add_EmptySummary(t *testing.T) {
 	_, cleanup := setupIssuesProject(t)
 	defer cleanup()
 
 	code := RunIssues([]string{"add", "test-id", "env", "", "fix text"}, true)
-	if code != 1 {
-		t.Errorf("expected exit code 1 for empty summary, got %d", code)
+	if code != 2 {
+		t.Errorf("expected exit code 2 for empty summary, got %d", code)
 	}
 }
 
-// TestRunIssues_Add_EmptyFix verifies exit 1 for empty fix.
+// TestRunIssues_Add_EmptyFix verifies exit 2 for empty fix.
 func TestRunIssues_Add_EmptyFix(t *testing.T) {
 	_, cleanup := setupIssuesProject(t)
 	defer cleanup()
 
 	code := RunIssues([]string{"add", "test-id", "env", "summary text", ""}, true)
-	if code != 1 {
-		t.Errorf("expected exit code 1 for empty fix, got %d", code)
+	if code != 2 {
+		t.Errorf("expected exit code 2 for empty fix, got %d", code)
 	}
 }
 

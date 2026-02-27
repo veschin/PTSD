@@ -48,8 +48,14 @@ func runReviewRecord(args []string, cwd string, agentMode bool) int {
 		return coreError(agentMode, err)
 	}
 
+	cfg, _ := core.LoadConfig(cwd)
+	minScore := cfg.Review.MinScore
+	if minScore == 0 {
+		minScore = 7
+	}
+
 	verdict := "pass"
-	if score < 7 {
+	if score < minScore {
 		verdict = "fail"
 	}
 

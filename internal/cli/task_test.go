@@ -669,14 +669,8 @@ func TestRunTask_Next_LimitNegative(t *testing.T) {
 
 // --- Issue 1: BDD 'list --feature' filter ---
 
-// TestRunTask_List_FeatureFilterNotSupportedInCLI documents that the current
-// CLI does not parse a --feature flag; extra args are ignored and all tasks
-// are returned. This test asserts the existing behavior.
-//
-// NOTE: core.ListTasks supports feature filtering but runTaskList does not
-// expose it via a --feature flag. If that flag is added in the future this
-// test should be updated.
-func TestRunTask_List_AllTasksReturnedWithoutFilter(t *testing.T) {
+// TestRunTask_List_FeatureFilter verifies that --feature flag filters tasks.
+func TestRunTask_List_FeatureFilter(t *testing.T) {
 	preloadedTasks := `tasks:
   - id: T-1
     feature: feat-a
@@ -693,18 +687,17 @@ func TestRunTask_List_AllTasksReturnedWithoutFilter(t *testing.T) {
 	withDir(t, dir, func() {
 		var code int
 		out := captureStdout(t, func() {
-			// Pass an unrecognised flag — CLI ignores it and lists all tasks.
-			code = RunTask([]string{"list"}, true)
+			code = RunTask([]string{"list", "--feature", "feat-a"}, true)
 		})
 		if code != 0 {
 			t.Errorf("expected exit 0, got %d", code)
 		}
-		// Both tasks must appear because the CLI has no --feature filter.
+		// Only feat-a tasks should appear
 		if !strings.Contains(out, "T-1") {
 			t.Errorf("expected T-1 in output, got: %q", out)
 		}
-		if !strings.Contains(out, "T-2") {
-			t.Errorf("expected T-2 in output, got: %q", out)
+		if strings.Contains(out, "T-2") {
+			t.Errorf("expected T-2 NOT in output, got: %q", out)
 		}
 	})
 }

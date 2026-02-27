@@ -84,9 +84,17 @@ func runTaskAdd(cwd string, args []string, agentMode bool) int {
 	return 0
 }
 
-// runTaskList handles: task list
+// runTaskList handles: task list [--feature <feature-id>]
 func runTaskList(cwd string, args []string, agentMode bool) int {
-	tasks, err := core.ListTasks(cwd, "", "")
+	featureFilter := ""
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--feature" && i+1 < len(args) {
+			featureFilter = args[i+1]
+			break
+		}
+	}
+
+	tasks, err := core.ListTasks(cwd, featureFilter, "")
 	if err != nil {
 		return coreError(agentMode, err)
 	}
