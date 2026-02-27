@@ -137,10 +137,10 @@ func inferFeatureFromTestFile(projectDir, rel string) string {
 	if err != nil {
 		return ""
 	}
-	for _, f := range features {
-		if name == f.ID || strings.Contains(name, f.ID) {
-			return f.ID
-		}
+
+	match := matchFeatureID(name, features)
+	if match != "" {
+		return match
 	}
 
 	// Check state test mappings
@@ -168,12 +168,30 @@ func inferFeatureFromImplFile(projectDir, rel string) string {
 	if err != nil {
 		return ""
 	}
+
+	return matchFeatureID(name, features)
+}
+
+// matchFeatureID finds the best matching feature ID for a filename.
+// Prefers exact match, then longest substring match to avoid "auth" matching "authorization".
+func matchFeatureID(name string, features []Feature) string {
+	// Exact match first
 	for _, f := range features {
-		if name == f.ID || strings.Contains(name, f.ID) {
+		if name == f.ID {
 			return f.ID
 		}
 	}
-	return ""
+
+	// Longest substring match — prevents "auth" from matching "authorization"
+	bestMatch := ""
+	bestLen := 0
+	for _, f := range features {
+		if strings.Contains(name, f.ID) && len(f.ID) > bestLen {
+			bestMatch = f.ID
+			bestLen = len(f.ID)
+		}
+	}
+	return bestMatch
 }
 
 func isImplFile(rel string) bool {

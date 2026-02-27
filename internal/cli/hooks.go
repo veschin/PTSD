@@ -147,24 +147,54 @@ func runPostToolUse(agentMode bool) int {
 }
 
 // extractFilePathFromStdin scans stdin JSON for "file_path":"..." using simple string search.
-// Avoids encoding/json to handle potentially huge content fields efficiently.
 func extractFilePathFromStdin() string {
-	data, err := io.ReadAll(os.Stdin)
+	return extractFilePathFromReader(os.Stdin)
+}
+
+// extractFilePathFromReader scans JSON from a reader for "file_path":"..." using string search.
+// Avoids encoding/json to handle potentially huge content fields efficiently.
+// Looks for "file_path" as a JSON key (preceded by { or ,) to avoid matching inside content values.
+func extractFilePathFromReader(r io.Reader) string {
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return ""
 	}
 
 	input := string(data)
-
-	// Look for "file_path" key in JSON
 	key := `"file_path"`
-	idx := strings.Index(input, key)
-	if idx == -1 {
-		return ""
-	}
 
-	// Find the colon after the key
-	rest := input[idx+len(key):]
+	// Search for all occurrences and pick the one that looks like a JSON key
+	offset := 0
+	for {
+		idx := strings.Index(input[offset:], key)
+		if idx == -1 {
+			return ""
+		}
+		pos := offset + idx
+
+		// Check if this looks like a JSON key: preceded by { or , (ignoring whitespace)
+		isKey := false
+		for i := pos - 1; i >= 0; i-- {
+			c := input[i]
+			if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
+				continue
+			}
+			if c == '{' || c == ',' {
+				isKey = true
+			}
+			break
+		}
+
+		if isKey {
+			return extractJSONStringValue(input[pos+len(key):])
+		}
+
+		offset = pos + len(key)
+	}
+}
+
+// extractJSONStringValue extracts a string value from `: "value"` pattern.
+func extractJSONStringValue(rest string) string {
 	rest = strings.TrimSpace(rest)
 	if len(rest) == 0 || rest[0] != ':' {
 		return ""
@@ -175,12 +205,19 @@ func extractFilePathFromStdin() string {
 		return ""
 	}
 
-	// Extract string value
+	// Extract string value, handling escaped quotes
 	rest = rest[1:]
-	end := strings.Index(rest, `"`)
-	if end == -1 {
-		return ""
+	var result strings.Builder
+	for i := 0; i < len(rest); i++ {
+		if rest[i] == '\\' && i+1 < len(rest) {
+			result.WriteByte(rest[i+1])
+			i++
+			continue
+		}
+		if rest[i] == '"' {
+			return result.String()
+		}
+		result.WriteByte(rest[i])
 	}
-
-	return rest[:end]
+	return ""
 }
