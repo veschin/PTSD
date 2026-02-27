@@ -50,10 +50,10 @@ git clone https://github.com/veschin/ptsd.git && cd ptsd
 go build -o ptsd ./cmd/ptsd
 ```
 
-**Update** — same command, always fetches latest:
+**Update** — pull and rebuild:
 
 ```bash
-go install github.com/veschin/ptsd/cmd/ptsd@latest
+cd ptsd && git pull && go build -o ptsd ./cmd/ptsd
 ```
 
 **Uninstall:**
