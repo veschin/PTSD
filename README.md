@@ -55,8 +55,10 @@ go build -o ptsd ./cmd/ptsd
 ```bash
 mkdir my-project && cd my-project
 git init
-ptsd init --name my-project
+ptsd init
 ```
+
+Project name defaults to the directory name. Use `--name <name>` to override — this sets `project.name` in config and adds the binary to `.gitignore`.
 
 This generates everything:
 - `.ptsd/` — config, feature registry, state, PRD template
