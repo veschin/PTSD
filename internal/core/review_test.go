@@ -255,6 +255,52 @@ func TestCheckReviewGateNoConfig(t *testing.T) {
 	}
 }
 
+func TestRecordReviewAdvancesStage(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "user-auth:planned")
+	ptsdDir := filepath.Join(dir, ".ptsd")
+
+	// state.yaml with empty stage
+	statePath := filepath.Join(ptsdDir, "state.yaml")
+	os.WriteFile(statePath, []byte("features:\n  user-auth:\n    stage: \n    hashes: {}\n    scores: {}\n"), 0644)
+
+	err := RecordReview(dir, "user-auth", "bdd", 9)
+	if err != nil {
+		t.Fatalf("RecordReview: %v", err)
+	}
+
+	state, err := LoadState(dir)
+	if err != nil {
+		t.Fatalf("LoadState: %v", err)
+	}
+	fs := state.Features["user-auth"]
+	if fs.Stage != "bdd" {
+		t.Errorf("expected stage=bdd after reviewing bdd, got %q", fs.Stage)
+	}
+}
+
+func TestRecordReviewNeverRegressesStage(t *testing.T) {
+	dir := setupProjectWithFeatures(t, "user-auth:planned")
+	ptsdDir := filepath.Join(dir, ".ptsd")
+
+	// state.yaml at impl stage
+	statePath := filepath.Join(ptsdDir, "state.yaml")
+	os.WriteFile(statePath, []byte("features:\n  user-auth:\n    stage: impl\n    hashes: {}\n    scores: {}\n"), 0644)
+
+	err := RecordReview(dir, "user-auth", "prd", 8)
+	if err != nil {
+		t.Fatalf("RecordReview: %v", err)
+	}
+
+	state, err := LoadState(dir)
+	if err != nil {
+		t.Fatalf("LoadState: %v", err)
+	}
+	fs := state.Features["user-auth"]
+	if fs.Stage != "impl" {
+		t.Errorf("stage should remain impl, got %q", fs.Stage)
+	}
+}
+
 func TestAutoRedoTaskOnLowScore(t *testing.T) {
 	dir := setupProjectWithFeatures(t, "user-auth:planned")
 	ptsdDir := filepath.Join(dir, ".ptsd")

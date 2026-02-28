@@ -177,7 +177,7 @@ On fix: remove from `issues_list`, decrement. At 0: set `passed`, drop `issues_l
 
 ## CLI Commands
 
-18 commands: `init`, `adopt`, `feature`, `config`, `task`, `prd`, `seed`, `bdd`, `test`, `status`, `validate`, `hooks`, `review`, `skills`, `issues`, `context`, `gate-check`, `auto-track`.
+20 commands: `init`, `adopt`, `feature`, `config`, `task`, `prd`, `seed`, `bdd`, `test`, `status`, `validate`, `hooks`, `review`, `skills`, `issues`, `context`, `gate-check`, `auto-track`, `help`, `version`.
 
 Key subcommands: `prd check|show`, `seed init|add`, `bdd add|list`, `test run|map`, `feature add|list|status`, `task add|list|next|done`.
 

@@ -389,6 +389,7 @@ func ProjectStatus(projectDir string) (ProjectStatusResult, error) {
 
 	// Fill in missing stages from on-disk artifacts
 	features, _ := loadFeatures(projectDir)
+	stateUpdated := false
 	for _, f := range features {
 		fs, ok := state.Features[f.ID]
 		if !ok || fs.Stage == "" {
@@ -402,8 +403,13 @@ func ProjectStatus(projectDir string) (ProjectStatusResult, error) {
 				}
 				fs.Stage = computed
 				state.Features[f.ID] = fs
+				stateUpdated = true
 			}
 		}
+	}
+
+	if stateUpdated {
+		_ = writeState(projectDir, state)
 	}
 
 	return ProjectStatusResult{Features: state.Features, Regressions: regressions}, nil

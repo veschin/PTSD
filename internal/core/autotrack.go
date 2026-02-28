@@ -79,6 +79,45 @@ func AutoTrack(projectDir, filePath string) (*AutoTrackResult, error) {
 		if err := saveReviewStatus(projectDir, rs); err != nil {
 			return nil, err
 		}
+
+		// Sync state.yaml — errors are non-blocking
+		if st, err := LoadState(projectDir); err == nil {
+			sfs, ok := st.Features[featureID]
+			if !ok {
+				sfs = FeatureState{
+					Hashes: make(map[string]string),
+					Scores: make(map[string]ScoreEntry),
+				}
+			}
+			if sfs.Hashes == nil {
+				sfs.Hashes = make(map[string]string)
+			}
+
+			if newStage != "" && stageOrder[newStage] > stageOrder[sfs.Stage] {
+				sfs.Stage = newStage
+			}
+
+			var hashKey, hashPath string
+			switch newStage {
+			case "bdd":
+				hashKey = "bdd"
+				hashPath = filepath.Join(projectDir, rel)
+			case "seed":
+				hashKey = "seed"
+				hashPath = filepath.Join(projectDir, rel)
+			case "tests":
+				hashKey = "test"
+				hashPath = filepath.Join(projectDir, rel)
+			}
+			if hashKey != "" {
+				if h, err := computeFileHash(hashPath); err == nil {
+					sfs.Hashes[hashKey] = h
+				}
+			}
+
+			st.Features[featureID] = sfs
+			_ = writeState(projectDir, st)
+		}
 	}
 
 	return result, nil

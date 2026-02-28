@@ -14,6 +14,9 @@ func TestAutoTrack_BDDAdvancesStage(t *testing.T) {
 		"features:\n  auth:\n    stage: seed\n    tests: absent\n    review: pending\n    issues: 0\n",
 	), 0644)
 
+	// Create BDD file on disk for hash computation
+	os.WriteFile(filepath.Join(ptsd, "bdd", "auth.feature"), []byte("Feature: auth\n"), 0644)
+
 	result, err := AutoTrack(dir, ".ptsd/bdd/auth.feature")
 	if err != nil {
 		t.Fatalf("AutoTrack: %v", err)
@@ -29,6 +32,19 @@ func TestAutoTrack_BDDAdvancesStage(t *testing.T) {
 	}
 	if result.Feature != "auth" {
 		t.Errorf("expected feature=auth, got %s", result.Feature)
+	}
+
+	// Verify state.yaml was synced
+	state, err := LoadState(dir)
+	if err != nil {
+		t.Fatalf("LoadState: %v", err)
+	}
+	fs := state.Features["auth"]
+	if fs.Stage != "bdd" {
+		t.Errorf("state.yaml stage: got %q, want bdd", fs.Stage)
+	}
+	if fs.Hashes["bdd"] == "" {
+		t.Error("state.yaml should have bdd hash")
 	}
 }
 
@@ -59,6 +75,11 @@ func TestAutoTrack_TestSetsWritten(t *testing.T) {
 		"features:\n  auth:\n    stage: bdd\n    tests: absent\n    review: pending\n    issues: 0\n",
 	), 0644)
 
+	// Create test file on disk for hash computation
+	testDir := filepath.Join(dir, "internal", "core")
+	os.MkdirAll(testDir, 0755)
+	os.WriteFile(filepath.Join(testDir, "auth_test.go"), []byte("package core\n"), 0644)
+
 	result, err := AutoTrack(dir, "internal/core/auth_test.go")
 	if err != nil {
 		t.Fatalf("AutoTrack: %v", err)
@@ -68,6 +89,19 @@ func TestAutoTrack_TestSetsWritten(t *testing.T) {
 	}
 	if result.Tests != "written" {
 		t.Errorf("expected tests=written, got %s", result.Tests)
+	}
+
+	// Verify state.yaml was synced
+	state, err := LoadState(dir)
+	if err != nil {
+		t.Fatalf("LoadState: %v", err)
+	}
+	fs := state.Features["auth"]
+	if fs.Stage != "tests" {
+		t.Errorf("state.yaml stage: got %q, want tests", fs.Stage)
+	}
+	if fs.Hashes["test"] == "" {
+		t.Error("state.yaml should have test hash")
 	}
 }
 
@@ -79,6 +113,11 @@ func TestAutoTrack_SeedAdvancesStage(t *testing.T) {
 		"features:\n  auth:\n    stage: prd\n    tests: absent\n    review: pending\n    issues: 0\n",
 	), 0644)
 
+	// Create seed file on disk for hash computation
+	seedDir := filepath.Join(ptsd, "seeds", "auth")
+	os.MkdirAll(seedDir, 0755)
+	os.WriteFile(filepath.Join(seedDir, "seed.yaml"), []byte("data: x\n"), 0644)
+
 	result, err := AutoTrack(dir, ".ptsd/seeds/auth/seed.yaml")
 	if err != nil {
 		t.Fatalf("AutoTrack: %v", err)
@@ -88,6 +127,19 @@ func TestAutoTrack_SeedAdvancesStage(t *testing.T) {
 	}
 	if result.Stage != "seed" {
 		t.Errorf("expected stage=seed, got %s", result.Stage)
+	}
+
+	// Verify state.yaml was synced
+	state, err := LoadState(dir)
+	if err != nil {
+		t.Fatalf("LoadState: %v", err)
+	}
+	fs := state.Features["auth"]
+	if fs.Stage != "seed" {
+		t.Errorf("state.yaml stage: got %q, want seed", fs.Stage)
+	}
+	if fs.Hashes["seed"] == "" {
+		t.Error("state.yaml should have seed hash")
 	}
 }
 
@@ -183,6 +235,16 @@ func TestAutoTrack_ImplAdvancesStage(t *testing.T) {
 	}
 	if result.Stage != "impl" {
 		t.Errorf("expected stage=impl, got %s", result.Stage)
+	}
+
+	// Verify state.yaml stage (impl has no hash)
+	state, err := LoadState(dir)
+	if err != nil {
+		t.Fatalf("LoadState: %v", err)
+	}
+	fs := state.Features["auth"]
+	if fs.Stage != "impl" {
+		t.Errorf("state.yaml stage: got %q, want impl", fs.Stage)
 	}
 }
 

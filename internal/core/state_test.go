@@ -241,6 +241,31 @@ func TestProjectStatusNoRegressionsWhenClean(t *testing.T) {
 	}
 }
 
+func TestProjectStatusPersistsComputedStages(t *testing.T) {
+	dir := t.TempDir()
+	setupFeatureFiles(t, dir, "user-auth", "seed", "bdd", "test")
+
+	// state.yaml with empty stage
+	ptsdDir := filepath.Join(dir, ".ptsd")
+	os.WriteFile(filepath.Join(ptsdDir, "state.yaml"),
+		[]byte("features:\n  user-auth:\n    stage: \n    hashes: {}\n    scores: {}\n"), 0644)
+
+	_, err := ProjectStatus(dir)
+	if err != nil {
+		t.Fatalf("ProjectStatus: %v", err)
+	}
+
+	// Reload from disk — stage should be persisted
+	state, err := LoadState(dir)
+	if err != nil {
+		t.Fatalf("LoadState: %v", err)
+	}
+	fs := state.Features["user-auth"]
+	if fs.Stage == "" {
+		t.Error("ProjectStatus should persist computed stage to state.yaml")
+	}
+}
+
 // Helpers
 
 func setupFeatureFiles(t *testing.T, dir, feature string, artifacts ...string) {

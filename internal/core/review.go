@@ -159,6 +159,12 @@ func RecordReview(projectDir string, featureID string, stage string, score int) 
 		Value:     score,
 		Timestamp: time.Now(),
 	}
+
+	// Advance stage in state.yaml (advance-only, never regress)
+	if stageOrder[stage] > stageOrder[fs.Stage] {
+		fs.Stage = stage
+	}
+
 	state.Features[featureID] = fs
 
 	if err := writeState(projectDir, state); err != nil {
