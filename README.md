@@ -35,13 +35,21 @@ The LLM doesn't choose to follow the pipeline — it **can't not follow it**.
 
 ## Quick Start
 
-### Install & Update
+### Install
 
 Requires Go 1.25+
 
 ```bash
 go install github.com/veschin/ptsd/cmd/ptsd@latest
 ```
+
+If `@latest` returns a stale version (Go proxy caches ~30 min), pin the tag:
+
+```bash
+go install github.com/veschin/ptsd/cmd/ptsd@v1.3.0
+```
+
+Verify: `ptsd version`
 
 Shell completion (optional):
 
@@ -53,13 +61,7 @@ eval "$(ptsd completion bash)"
 ptsd completion fish | source
 ```
 
-Uninstall:
-
-```bash
-rm $(go env GOPATH)/bin/ptsd
-# per project:
-rm -rf .ptsd/ .claude/ .git/hooks/pre-commit .git/hooks/commit-msg
-```
+Uninstall: `rm $(go env GOPATH)/bin/ptsd`. Per project: `rm -rf .ptsd/ .claude/ .git/hooks/pre-commit .git/hooks/commit-msg`
 
 ### Initialize
 
