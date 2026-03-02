@@ -36,3 +36,8 @@ func readTemplate(name string) (string, error) {
 	}
 	return string(raw), nil
 }
+
+// ReadEmbeddedTemplate returns raw content of an embedded template (exported for CLI use).
+func ReadEmbeddedTemplate(name string) (string, error) {
+	return readTemplate(name)
+}

@@ -70,6 +70,8 @@ func main() {
 		exitCode = cli.RunGateCheck(subargs, agentMode)
 	case "auto-track":
 		exitCode = cli.RunAutoTrack(subargs, agentMode)
+	case "completion":
+		exitCode = cli.RunCompletion(subargs, agentMode)
 	case "help":
 		exitCode = cli.RunHelp(subargs, agentMode)
 	case "version":

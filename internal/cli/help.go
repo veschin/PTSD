@@ -36,6 +36,7 @@ Other:
   config show              Show config
   skills                   List pipeline skills
   issues                   Common issues registry
+  completion bash|fish     Shell completion script
   help                     This message
   version                  Show version
 

@@ -35,7 +35,7 @@ The LLM doesn't choose to follow the pipeline — it **can't not follow it**.
 
 ## Quick Start
 
-### Install
+### Install & Update
 
 Requires Go 1.25+
 
@@ -43,17 +43,21 @@ Requires Go 1.25+
 go install github.com/veschin/ptsd/cmd/ptsd@latest
 ```
 
-**Update** — same command:
+Shell completion (optional):
 
 ```bash
-go install github.com/veschin/ptsd/cmd/ptsd@latest
+# bash — add to ~/.bashrc
+eval "$(ptsd completion bash)"
+
+# fish — add to ~/.config/fish/config.fish
+ptsd completion fish | source
 ```
 
-**Uninstall:**
+Uninstall:
 
 ```bash
 rm $(go env GOPATH)/bin/ptsd
-# per project — remove generated artifacts:
+# per project:
 rm -rf .ptsd/ .claude/ .git/hooks/pre-commit .git/hooks/commit-msg
 ```
 
@@ -196,7 +200,7 @@ cmd/ptsd/main.go → internal/cli/* → internal/core/*
 | `render/` | Output formatting — agent mode only (human TUI not yet implemented) |
 | `cli/` | Glue: args → core → render. `func RunX(args []string, agentMode bool) int` |
 
-Flat `switch` dispatcher in `main.go`. No cobra, no flag package. 18 commands.
+Flat `switch` dispatcher in `main.go`. No cobra, no flag package. 21 commands.
 
 All YAML parsing is hand-rolled in `core/` (line-by-line `strings.Split`/`HasPrefix`/`TrimPrefix`). Templates embedded via `//go:embed`.
 
