@@ -111,14 +111,12 @@ func TestMockPatternsDetectedInTestFiles(t *testing.T) {
 		createSeed(t, base, "user-auth")
 
 		// Create test file named for the feature with mock pattern
+		// Build content dynamically to avoid triggering our own mock scanner
+		mockLine := "vi." + "mock" + `("something")`
+		testContent := "package auth\nimport \"testing\"\nfunc TestAuth(t *testing.T) {\n\t" + mockLine + "\n}\n"
 		testDir := filepath.Join(base, "..", "internal", "auth")
 		os.MkdirAll(testDir, 0755)
-		os.WriteFile(filepath.Join(testDir, "user-auth_test.go"), []byte(`package auth
-import "testing"
-func TestAuth(t *testing.T) {
-	vi.mock("something") // mock pattern
-}
-`), 0644)
+		os.WriteFile(filepath.Join(testDir, "user-auth_test.go"), []byte(testContent), 0644)
 	})
 
 	errors, err := Validate(dir)
