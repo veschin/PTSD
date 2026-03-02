@@ -6,18 +6,26 @@ features:
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
       test: ff634caee264f394c1e1c0a3c09f6bfae46bd0fc07c3ee1eefc14dca45e30850
     scores:
+    tests:
+      - .ptsd/bdd/adopt.feature::internal/core/adopt_test.go
   bdd-mgmt:
     stage: bdd
     hashes:
       bdd: b09cb7ede57f08a78461d656ba68fb3268754684be44fce5a7f58d0f4f692a41
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: d0f009fd5129f2eab6950a617a8b1b9e4e8db21ec2e4f99f7f3ce5d6a557b5e3
     scores:
+    tests:
+      - .ptsd/bdd/bdd-mgmt.feature::internal/core/bdd_test.go
   common-issues:
     stage: bdd
     hashes:
       bdd: e976f942c15e8a426c885af3613a88630a28b1096d7090517cdb97b368eb0a5c
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: 91394626d76cc3931c1a10a6676fdef3a4b98b056a8947c58ae285493fcf055b
     scores:
+    tests:
+      - .ptsd/bdd/common-issues.feature::internal/core/issues_test.go
   config:
     stage: tests
     hashes:
@@ -25,18 +33,26 @@ features:
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
       test: 12b279473c09a13c0eb55b54cf91c8b00552f6ce71bb8aa209cd85dfbb966e79
     scores:
+    tests:
+      - .ptsd/bdd/config.feature::internal/core/config_test.go
   feature-mgmt:
     stage: bdd
     hashes:
       bdd: 213835b0405f0aa3105c8bfc76b9b05fd867b777d72a025f7c915cb9a15ac1ef
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: 3674023d2738d01edee8d33161f63ea90f68ad52d755f47c614cec207b2a8bf0
     scores:
+    tests:
+      - .ptsd/bdd/feature-mgmt.feature::internal/core/registry_test.go
   git-hooks:
     stage: bdd
     hashes:
       bdd: 4f4410f31319e38f947d5b1545cd9f506e962108af55f7e6b796b047f946dc03
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: 4d5e25b1bd3eb9bb1588c6441c54e57a0901b1b2850224e9e929298ceb75a613
     scores:
+    tests:
+      - .ptsd/bdd/git-hooks.feature::internal/core/hooks_test.go
   init:
     stage: tests
     hashes:
@@ -44,18 +60,26 @@ features:
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
       test: b3b3e121d911b7eeecb73505b56d4193276fe4b488d98422850178c63342a38f
     scores:
+    tests:
+      - .ptsd/bdd/init.feature::internal/core/init_test.go
   output:
     stage: tests
     hashes:
       bdd: 751411572a97865ee2333a1b0180570f6a98a3435a6e0298a2d474111a52d209
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: 8caebd39a84b84536bc007d09c6c73d4f01101602a3ee3baa6c88026bbc9fd77
     scores:
+    tests:
+      - .ptsd/bdd/output.feature::internal/cli/output_test.go
   prd-check:
     stage: bdd
     hashes:
       bdd: b1d2022434ab54297d6297a6f548b06485897049ee7782bcaffb72594de56ddb
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: c24088027752a34d0567e92352d3ea4a0f9ebd52b1a8d835d86b642889177f08
     scores:
+    tests:
+      - .ptsd/bdd/prd-check.feature::internal/core/prd_test.go
   review:
     stage: tests
     hashes:
@@ -63,12 +87,17 @@ features:
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
       test: e4e163ef147c42e0ace03fde939d0109a1d40f37da247d3851b3dcb2b528b914
     scores:
+    tests:
+      - .ptsd/bdd/review.feature::internal/core/review_test.go
   seed-mgmt:
     stage: bdd
     hashes:
       bdd: 9fd163029238fa8b11b500c9ca33e35f6774d199a0a39c0a14a78cbb08093c8a
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: 39bdf74fe7cd04169179287d9bd34426320d3a605cc61d4b2b7b392b9162081d
     scores:
+    tests:
+      - .ptsd/bdd/seed-mgmt.feature::internal/core/seed_test.go
   skills:
     stage: tests
     hashes:
@@ -76,33 +105,50 @@ features:
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
       test: 84227a936e30fbc8afd0d9c87794526249205af787266fdcc1aa817cd1cd3d1e
     scores:
+    tests:
+      - .ptsd/bdd/skills.feature::internal/core/skills_test.go
   state-tracking:
     stage: bdd
     hashes:
       bdd: f378c1e2e2ec7928f8ff96f30526937167bbca8be09a84ba24d3118050737b88
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: 953d8b778e8b998b98a9e2c0bb09dcfd21ec3f46b5d25a159b46e8a59f3dccc1
     scores:
+    tests:
+      - .ptsd/bdd/state-tracking.feature::internal/core/state_test.go
   status:
     stage: tests
     hashes:
       bdd: 55053b9f547864344061ffdc3f0ffe3076b900644ef921d9e7b5767f17b3a0cc
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: 7363691898a6f2fbd97d8fd58ee6f5d6c50b3658030dc3b8414ecf450db0bbfb
     scores:
+    tests:
+      - .ptsd/bdd/status.feature::internal/cli/status_test.go
   task-mgmt:
     stage: bdd
     hashes:
       bdd: f22319e2b023e3508c38fcaca59569b38b9118b1d12152740a5edafba08af209
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: 81695db4ea4c2297f63c0ccf5e9c4e6ef01f6d3361fbb66767a4273bfb8888ac
     scores:
+    tests:
+      - .ptsd/bdd/task-mgmt.feature::internal/core/tasks_test.go
   test-integration:
     stage: bdd
     hashes:
       bdd: ec9b4ee7f5eb0c7aa5d40f09d5d35e8d219e6251468d641aea2a5dda0cd764b3
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: 9bb7a75d7fc8b32f5cf6070737d8a3fab276ca0d894b17c6221f84cd93a87c45
     scores:
+    tests:
+      - .ptsd/bdd/test-integration.feature::internal/core/testrunner_test.go
   validate:
     stage: tests
     hashes:
       bdd: fcac06ea642cacaf577d934d989b60b1293760412e465e27343ca13024e3527d
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: f21f58f00eaa2f8ab89f5e42224cd62f5331aefb1c04b6d3cade5c1ed039739b
     scores:
+    tests:
+      - .ptsd/bdd/validate.feature::internal/core/pipeline_test.go
