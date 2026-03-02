@@ -300,12 +300,12 @@ testing:
 	}
 	args := strings.TrimSpace(string(argsBytes))
 
-	// Should contain only user-auth's test file, not data-sync's
-	if !strings.Contains(args, "tests/auth.test.ts") {
-		t.Errorf("expected runner to receive tests/auth.test.ts, got: %q", args)
+	// Runner should receive the feature name, not individual test files
+	if !strings.Contains(args, "user-auth") {
+		t.Errorf("expected runner to receive user-auth, got: %q", args)
 	}
-	if strings.Contains(args, "tests/sync.test.ts") {
-		t.Errorf("runner should NOT receive tests/sync.test.ts when filtering by user-auth, got: %q", args)
+	if strings.Contains(args, "data-sync") {
+		t.Errorf("runner should NOT receive data-sync when filtering by user-auth, got: %q", args)
 	}
 }
 

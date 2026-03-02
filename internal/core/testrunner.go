@@ -154,8 +154,8 @@ func RunTests(projectDir string, featureFilter string) (TestResults, error) {
 
 	runner := cfg.Testing.Runner
 
-	// When a feature filter is specified, extract that feature's test files
-	// from state and append them to the runner command.
+	// When a feature filter is specified, verify test files are mapped
+	// and pass the feature name to the runner (runner decides how to invoke tests).
 	if featureFilter != "" {
 		testFiles, err := featureTestFiles(projectDir, featureFilter)
 		if err != nil {
@@ -164,7 +164,7 @@ func RunTests(projectDir string, featureFilter string) (TestResults, error) {
 		if len(testFiles) == 0 {
 			return TestResults{}, fmt.Errorf("err:test no test files mapped for feature %s", featureFilter)
 		}
-		runner = runner + " " + strings.Join(testFiles, " ")
+		runner = runner + " " + featureFilter
 	}
 
 	cmd := exec.Command("sh", "-c", runner)
@@ -191,10 +191,13 @@ func RunTests(projectDir string, featureFilter string) (TestResults, error) {
 		}
 	}
 
-	// Detect Go test output by presence of === RUN or --- PASS/FAIL markers
+	// Detect output format and override with appropriate parser
 	outStr := string(output)
 	if strings.Contains(outStr, "=== RUN") || strings.Contains(outStr, "--- PASS:") || strings.Contains(outStr, "--- FAIL:") {
 		results = parseGoTestOutput(outStr)
+	} else if parsed := parsePTSDOutput(outStr); parsed.Total > 0 {
+		// PTSD-native format: "pass:N fail:M" summary + "PASS:/FAIL:" lines
+		results = parsed
 	} else if strings.Contains(outStr, "ok ") || strings.Contains(outStr, "not ok ") {
 		// Override with TAP parse if we got TAP-like output
 		results = parseTAPOutput(outStr)
@@ -249,6 +252,29 @@ func parseGoTestOutput(output string) TestResults {
 			if idx := strings.Index(name, " ("); idx > 0 {
 				name = name[:idx]
 			}
+			results.Failures = append(results.Failures, name)
+		}
+	}
+	return results
+}
+
+// parsePTSDOutput parses PTSD-native test runner output format:
+//
+//	pass:N fail:M        (summary line)
+//	PASS: test_name      (individual results)
+//	FAIL: test_name
+func parsePTSDOutput(output string) TestResults {
+	var results TestResults
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "pass:") {
+			// Parse summary: "pass:N fail:M"
+			fmt.Sscanf(line, "pass:%d fail:%d", &results.Passed, &results.Failed)
+			results.Total = results.Passed + results.Failed
+		} else if strings.HasPrefix(line, "PASS: ") {
+			// Individual pass (counted in summary, just for logging)
+		} else if strings.HasPrefix(line, "FAIL: ") {
+			name := strings.TrimPrefix(line, "FAIL: ")
 			results.Failures = append(results.Failures, name)
 		}
 	}

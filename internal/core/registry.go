@@ -21,6 +21,7 @@ type FeatureDetail struct {
 	SeedStatus    string
 	ScenarioCount int
 	TestCount     int
+	TestPassed    int
 }
 
 var validFeatureID = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
@@ -109,7 +110,7 @@ func ShowFeature(projectDir string, id string) (FeatureDetail, error) {
 		}
 	}
 
-	detail.TestCount = readTestCount(projectDir, id)
+	detail.TestCount, detail.TestPassed = readTestStats(projectDir, id)
 
 	prdPath := filepath.Join(projectDir, ".ptsd", "docs", "PRD.md")
 	if data, err := os.ReadFile(prdPath); err == nil {
@@ -236,38 +237,31 @@ func saveFeatures(projectDir string, features []Feature) error {
 	return os.WriteFile(featPath, []byte(b.String()), 0644)
 }
 
-func readTestCount(projectDir string, featureID string) int {
-	statePath := filepath.Join(projectDir, ".ptsd", "state.yaml")
-	data, err := os.ReadFile(statePath)
+// readTestStats returns (total, passed) test counts for a feature.
+// Reads from test_results hash ("passed:N failed:M") in state.yaml,
+// falling back to counting test file mappings.
+func readTestStats(projectDir string, featureID string) (total int, passed int) {
+	state, err := LoadState(projectDir)
 	if err != nil {
-		return 0
+		return 0, 0
 	}
-
-	lines := strings.Split(string(data), "\n")
-	inFeature := false
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == featureID+":" {
-			inFeature = true
-			continue
-		}
-		if inFeature && strings.HasPrefix(trimmed, "tests: ") {
-			val := strings.TrimPrefix(trimmed, "tests: ")
-			n := 0
-			for _, c := range val {
-				if c >= '0' && c <= '9' {
-					n = n*10 + int(c-'0')
-				} else {
-					break
-				}
-			}
-			return n
-		}
-		if inFeature && !strings.HasPrefix(line, "    ") && trimmed != "" {
-			inFeature = false
+	fs, ok := state.Features[featureID]
+	if !ok {
+		return 0, 0
+	}
+	// Primary: parse test_results hash "passed:N failed:M"
+	if tr, ok := fs.Hashes["test_results"]; ok {
+		var p, f int
+		fmt.Sscanf(tr, "passed:%d failed:%d", &p, &f)
+		if p+f > 0 {
+			return p + f, p
 		}
 	}
-	return 0
+	// Fallback: count test file mappings
+	if tests, ok := fs.Tests.([]string); ok {
+		return len(tests), 0
+	}
+	return 0, 0
 }
 
 func parseTestStatus(content string, featureID string) string {

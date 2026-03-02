@@ -1,1 +1,69 @@
 features:
+  adopt:
+    stage: tests
+    hashes:
+    scores:
+  bdd-mgmt:
+    stage: bdd
+    hashes:
+    scores:
+  common-issues:
+    stage: bdd
+    hashes:
+    scores:
+  config:
+    stage: tests
+    hashes:
+    scores:
+  feature-mgmt:
+    stage: bdd
+    hashes:
+    scores:
+  git-hooks:
+    stage: bdd
+    hashes:
+    scores:
+  init:
+    stage: tests
+    hashes:
+    scores:
+  output:
+    stage: tests
+    hashes:
+    scores:
+  prd-check:
+    stage: bdd
+    hashes:
+    scores:
+  review:
+    stage: tests
+    hashes:
+    scores:
+  seed-mgmt:
+    stage: bdd
+    hashes:
+    scores:
+  skills:
+    stage: tests
+    hashes:
+    scores:
+  state-tracking:
+    stage: bdd
+    hashes:
+    scores:
+  status:
+    stage: tests
+    hashes:
+    scores:
+  task-mgmt:
+    stage: bdd
+    hashes:
+    scores:
+  test-integration:
+    stage: bdd
+    hashes:
+    scores:
+  validate:
+    stage: tests
+    hashes:
+    scores:

@@ -192,6 +192,11 @@ func RecordReview(projectDir string, featureID string, stage string, score int) 
 		}
 	}
 
+	// Advance stage in review-status (same direction as state.yaml)
+	if stageOrder[stage] > stageOrder[entry.Stage] {
+		entry.Stage = stage
+	}
+
 	if score >= cfg.Review.MinScore {
 		entry.Review = "passed"
 		entry.Issues = 0

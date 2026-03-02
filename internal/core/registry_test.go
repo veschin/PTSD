@@ -253,9 +253,9 @@ func setupFeatureArtifacts(t *testing.T, dir string, id string) {
 	if err := os.MkdirAll(seedDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	// Update state with test count and failing status
+	// Update state with test results
 	statePath := filepath.Join(dir, ".ptsd", "state.yaml")
-	stateContent := "features:\n  " + id + ":\n    tests: 2\n    test_status: passing\n"
+	stateContent := "features:\n  " + id + ":\n    stage: tests\n    hashes:\n      test_results: passed:2 failed:0\n      test_status: passing\n"
 	if err := os.WriteFile(statePath, []byte(stateContent), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -264,7 +264,7 @@ func setupFeatureArtifacts(t *testing.T, dir string, id string) {
 func setTestsFailing(t *testing.T, dir string, id string) {
 	t.Helper()
 	statePath := filepath.Join(dir, ".ptsd", "state.yaml")
-	stateContent := "features:\n  " + id + ":\n    tests: 2\n    test_status: failing\n"
+	stateContent := "features:\n  " + id + ":\n    stage: tests\n    hashes:\n      test_results: passed:0 failed:2\n      test_status: failing\n"
 	if err := os.WriteFile(statePath, []byte(stateContent), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -273,7 +273,7 @@ func setTestsFailing(t *testing.T, dir string, id string) {
 func setTestsPassing(t *testing.T, dir string, id string) {
 	t.Helper()
 	statePath := filepath.Join(dir, ".ptsd", "state.yaml")
-	stateContent := "features:\n  " + id + ":\n    tests: 2\n    test_status: passing\n"
+	stateContent := "features:\n  " + id + ":\n    stage: tests\n    hashes:\n      test_results: passed:2 failed:0\n      test_status: passing\n"
 	if err := os.WriteFile(statePath, []byte(stateContent), 0644); err != nil {
 		t.Fatal(err)
 	}

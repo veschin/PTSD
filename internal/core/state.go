@@ -197,7 +197,7 @@ func SyncState(projectDir string) error {
 			fs.Hashes["bdd"] = h
 		}
 
-		testPath := filepath.Join(projectDir, "internal", "core", f.ID+"_test.go")
+		testPath := resolveTestPath(projectDir, fs, f.ID)
 		if h, err := computeFileHash(testPath); err == nil {
 			fs.Hashes["test"] = h
 		}
@@ -240,7 +240,7 @@ func CheckRegressions(projectDir string) ([]RegressionWarning, error) {
 			{"prd", filepath.Join(ptsdDir, "docs", "PRD.md"), "prd", 0},
 			{"seed", filepath.Join(ptsdDir, "seeds", featureID, "seed.yaml"), "seed", 1},
 			{"bdd", filepath.Join(ptsdDir, "bdd", featureID+".feature"), "bdd", 2},
-			{"test", filepath.Join(projectDir, "internal", "core", featureID+"_test.go"), "test", 3},
+			{"test", resolveTestPath(projectDir, fs, featureID), "test", 3},
 		}
 
 		for _, c := range checks {
@@ -320,30 +320,50 @@ type ProjectStatusResult struct {
 // ComputeStageFromArtifacts determines a feature's pipeline stage by checking on-disk artifacts.
 func ComputeStageFromArtifacts(projectDir, featureID string) string {
 	// Check from latest to earliest stage
-	// impl: any source code files exist for this feature (walk is expensive, check state test_status)
-	stateData, err := os.ReadFile(filepath.Join(projectDir, ".ptsd", "state.yaml"))
-	if err == nil && strings.Contains(string(stateData), featureID) {
+	// impl: check state test_status
+	stateData, stateErr := os.ReadFile(filepath.Join(projectDir, ".ptsd", "state.yaml"))
+	if stateErr == nil && strings.Contains(string(stateData), featureID) {
 		if parseTestStatus(string(stateData), featureID) == "passing" {
 			return "impl"
 		}
 	}
 
-	// tests: test files exist
+	// Load structured state for mapped test file checks
+	state, _ := LoadState(projectDir)
+
+	// tests: check mapped test files first, then walk
 	hasTests := false
-	filepath.Walk(projectDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
-			if info != nil && info.IsDir() && (strings.Contains(path, ".ptsd") || strings.Contains(path, ".git")) {
-				return filepath.SkipDir
+	if state != nil {
+		if fs, ok := state.Features[featureID]; ok {
+			for _, tf := range extractMappedTestFiles(fs) {
+				p := tf
+				if !filepath.IsAbs(tf) {
+					p = filepath.Join(projectDir, tf)
+				}
+				if _, err := os.Stat(p); err == nil {
+					hasTests = true
+					break
+				}
+			}
+		}
+	}
+	if !hasTests {
+		// Legacy fallback: walk for Go test files
+		filepath.Walk(projectDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil || info.IsDir() {
+				if info != nil && info.IsDir() && (strings.Contains(path, ".ptsd") || strings.Contains(path, ".git")) {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			base := filepath.Base(path)
+			if strings.Contains(base, featureID) && strings.HasSuffix(path, "_test.go") {
+				hasTests = true
+				return filepath.SkipAll
 			}
 			return nil
-		}
-		base := filepath.Base(path)
-		if strings.Contains(base, featureID) && strings.HasSuffix(path, "_test.go") {
-			hasTests = true
-			return filepath.SkipAll
-		}
-		return nil
-	})
+		})
+	}
 	if hasTests {
 		return "tests"
 	}
@@ -467,6 +487,41 @@ func writeState(projectDir string, state *State) error {
 	}
 
 	return os.WriteFile(statePath, []byte(b.String()), 0644)
+}
+
+// extractMappedTestFiles returns test file paths from a feature's test mappings.
+// Mappings use "bddFile::testFile" format; this extracts the test file parts.
+func extractMappedTestFiles(fs FeatureState) []string {
+	if fs.Tests == nil {
+		return nil
+	}
+	mappings, ok := fs.Tests.([]string)
+	if !ok || len(mappings) == 0 {
+		return nil
+	}
+	var files []string
+	for _, m := range mappings {
+		parts := strings.SplitN(m, "::", 2)
+		if len(parts) == 2 {
+			files = append(files, parts[1])
+		} else {
+			files = append(files, m)
+		}
+	}
+	return files
+}
+
+// resolveTestPath returns the filesystem path for a feature's primary test file.
+// Prefers mapped test files, falls back to legacy Go convention.
+func resolveTestPath(projectDir string, fs FeatureState, featureID string) string {
+	if testFiles := extractMappedTestFiles(fs); len(testFiles) > 0 {
+		p := testFiles[0]
+		if !filepath.IsAbs(p) {
+			return filepath.Join(projectDir, p)
+		}
+		return p
+	}
+	return filepath.Join(projectDir, "internal", "core", featureID+"_test.go")
 }
 
 func computeFileHash(path string) (string, error) {

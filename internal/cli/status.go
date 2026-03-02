@@ -67,10 +67,12 @@ func buildStatusData(projectDir string, result core.ProjectStatusResult) render.
 	}
 	data.BDDFail = bddFail
 
-	// Test counts: features that have a test hash are considered to have tests.
+	// Test counts: features with test hash or test_status are considered to have tests.
 	testFail := 0
 	for _, fs := range features {
 		if _, hasTest := fs.Hashes["test"]; hasTest {
+			data.TestTotal++
+		} else if _, hasTestStatus := fs.Hashes["test_status"]; hasTestStatus {
 			data.TestTotal++
 		} else {
 			testFail++

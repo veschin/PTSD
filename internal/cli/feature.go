@@ -100,12 +100,13 @@ func RunFeature(args []string, agentMode bool) int {
 			return coreError(agentMode, err)
 		}
 		fv := render.FeatureView{
-			ID:         detail.ID,
-			Status:     detail.Status,
-			PRDRange:   detail.PRDAnchor,
-			SeedStatus: detail.SeedStatus,
-			BDDCount:   detail.ScenarioCount,
-			TestTotal:  detail.TestCount,
+			ID:          detail.ID,
+			Status:      detail.Status,
+			PRDRange:    detail.PRDAnchor,
+			SeedStatus:  detail.SeedStatus,
+			BDDCount:    detail.ScenarioCount,
+			TestTotal:   detail.TestCount,
+			TestCovered: detail.TestPassed,
 		}
 		r := newRenderer(agentMode)
 		fmt.Println(r.RenderFeatureShow(fv))

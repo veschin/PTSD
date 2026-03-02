@@ -76,6 +76,12 @@ func BuildContext(projectDir string) (ContextResult, error) {
 			}
 		}
 
+		// Cross-check with state.yaml: if state has a more advanced stage, use it
+		// (review-status.yaml may be stale if reviews were recorded before this fix)
+		if stateStage := loadStateStage(projectDir, f.ID); stateStage != "" && stageOrder[stateStage] > stageOrder[stage] {
+			stage = stateStage
+		}
+
 		// Check for blockers
 		if review == "failed" {
 			result.Lines = append(result.Lines, ContextLine{
@@ -145,6 +151,18 @@ func BuildContext(projectDir string) (ContextResult, error) {
 	}
 
 	return result, nil
+}
+
+// loadStateStage reads a feature's explicit stage from state.yaml.
+func loadStateStage(projectDir, featureID string) string {
+	state, err := LoadState(projectDir)
+	if err != nil {
+		return ""
+	}
+	if fs, ok := state.Features[featureID]; ok {
+		return fs.Stage
+	}
+	return ""
 }
 
 func checkPrerequisite(projectDir, featureID, stage string) (blocked bool, reason string) {
