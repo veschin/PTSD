@@ -2,68 +2,107 @@ features:
   adopt:
     stage: tests
     hashes:
+      bdd: fe18724c0d2956b1e49ce0d242352ac65ce9a6a70de8ee352ca4d87f78b6552b
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: ff634caee264f394c1e1c0a3c09f6bfae46bd0fc07c3ee1eefc14dca45e30850
     scores:
   bdd-mgmt:
     stage: bdd
     hashes:
+      bdd: b09cb7ede57f08a78461d656ba68fb3268754684be44fce5a7f58d0f4f692a41
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
     scores:
   common-issues:
     stage: bdd
     hashes:
+      bdd: e976f942c15e8a426c885af3613a88630a28b1096d7090517cdb97b368eb0a5c
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
     scores:
   config:
     stage: tests
     hashes:
+      bdd: 62ea1991e28dacf1aa47091350acbf387b3db5ab9b62cfd5c41d605cdcacd589
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: 12b279473c09a13c0eb55b54cf91c8b00552f6ce71bb8aa209cd85dfbb966e79
     scores:
   feature-mgmt:
     stage: bdd
     hashes:
+      bdd: 213835b0405f0aa3105c8bfc76b9b05fd867b777d72a025f7c915cb9a15ac1ef
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
     scores:
   git-hooks:
     stage: bdd
     hashes:
+      bdd: 4f4410f31319e38f947d5b1545cd9f506e962108af55f7e6b796b047f946dc03
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
     scores:
   init:
     stage: tests
     hashes:
+      bdd: 710d3112cd3c4890554726fbae2a8f5480af44c5d1082aec7ccd4b02570a35de
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: b3b3e121d911b7eeecb73505b56d4193276fe4b488d98422850178c63342a38f
     scores:
   output:
     stage: tests
     hashes:
+      bdd: 751411572a97865ee2333a1b0180570f6a98a3435a6e0298a2d474111a52d209
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
     scores:
   prd-check:
     stage: bdd
     hashes:
+      bdd: b1d2022434ab54297d6297a6f548b06485897049ee7782bcaffb72594de56ddb
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
     scores:
   review:
     stage: tests
     hashes:
+      bdd: 07238d1abfa2eddf538979a200ff2087c5fa6205aca9de7b9a45f60318f41bf8
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: e4e163ef147c42e0ace03fde939d0109a1d40f37da247d3851b3dcb2b528b914
     scores:
   seed-mgmt:
     stage: bdd
     hashes:
+      bdd: 9fd163029238fa8b11b500c9ca33e35f6774d199a0a39c0a14a78cbb08093c8a
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
     scores:
   skills:
     stage: tests
     hashes:
+      bdd: 4f7b04ce440396d859822668a807d7c264ea48d14dad542934fea2f876720a5c
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
+      test: 84227a936e30fbc8afd0d9c87794526249205af787266fdcc1aa817cd1cd3d1e
     scores:
   state-tracking:
     stage: bdd
     hashes:
+      bdd: f378c1e2e2ec7928f8ff96f30526937167bbca8be09a84ba24d3118050737b88
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
     scores:
   status:
     stage: tests
     hashes:
+      bdd: 55053b9f547864344061ffdc3f0ffe3076b900644ef921d9e7b5767f17b3a0cc
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
     scores:
   task-mgmt:
     stage: bdd
     hashes:
+      bdd: f22319e2b023e3508c38fcaca59569b38b9118b1d12152740a5edafba08af209
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
     scores:
   test-integration:
     stage: bdd
     hashes:
+      bdd: ec9b4ee7f5eb0c7aa5d40f09d5d35e8d219e6251468d641aea2a5dda0cd764b3
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
     scores:
   validate:
     stage: tests
     hashes:
+      bdd: fcac06ea642cacaf577d934d989b60b1293760412e465e27343ca13024e3527d
+      prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
     scores:

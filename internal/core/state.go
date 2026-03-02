@@ -401,7 +401,10 @@ func ProjectStatus(projectDir string) (ProjectStatusResult, error) {
 
 	regressions, _ := CheckRegressions(projectDir)
 
-	// Reload state after regression check (CheckRegressions may update stages/hashes).
+	// Sync hashes from on-disk artifacts (after regression check so stored vs current diff works).
+	_ = SyncState(projectDir)
+
+	// Reload state after sync (hashes and stages now up to date).
 	state, err = LoadState(projectDir)
 	if err != nil {
 		return ProjectStatusResult{}, err
