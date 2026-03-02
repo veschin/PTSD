@@ -46,7 +46,7 @@ go install github.com/veschin/ptsd/cmd/ptsd@latest
 If `@latest` returns a stale version (Go proxy caches ~30 min), pin the tag:
 
 ```bash
-go install github.com/veschin/ptsd/cmd/ptsd@v1.3.0
+go install github.com/veschin/ptsd/cmd/ptsd@v1.3.1
 ```
 
 Verify: `ptsd version`
