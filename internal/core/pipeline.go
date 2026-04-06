@@ -54,7 +54,11 @@ func Validate(projectDir string) ([]ValidationError, error) {
 		seedPath := filepath.Join(projectDir, ".ptsd", "seeds", f.ID, "seed.yaml")
 		hasSeed := fileExists(seedPath)
 
-		if hasBDD && !hasSeed {
+		pipeline := f.Pipeline
+		if pipeline == "" {
+			pipeline = resolveDefaultPipeline(projectDir)
+		}
+		if hasBDD && !hasSeed && StageRequired(pipeline, "seed") {
 			errors = append(errors, ValidationError{
 				Feature:  f.ID,
 				Category: "pipeline",
@@ -62,12 +66,12 @@ func Validate(projectDir string) ([]ValidationError, error) {
 			})
 		}
 
-		// Only require tests if feature is past bdd stage
+		// Only require tests if feature is past bdd stage and pipeline includes bdd
 		currentStage := ""
 		if rs, ok := reviewStatus[f.ID]; ok {
 			currentStage = rs.Stage
 		}
-		if hasBDD && currentStage != "prd" && currentStage != "seed" && currentStage != "bdd" {
+		if hasBDD && StageRequired(pipeline, "bdd") && currentStage != "prd" && currentStage != "seed" && currentStage != "bdd" {
 			hasTests := hasTestsForFeature(projectDir, f.ID, state)
 			if !hasTests {
 				errors = append(errors, ValidationError{
@@ -151,8 +155,7 @@ func hasTestsForFeature(projectDir string, featureID string, state *State) bool 
 			return filepath.SkipDir
 		}
 		base := filepath.Base(path)
-		if strings.Contains(base, featureID) &&
-			(strings.HasSuffix(path, "_test.go") || strings.HasSuffix(path, ".test.ts") || strings.HasSuffix(path, ".test.js")) {
+		if strings.Contains(base, featureID) && IsTestFile(path) {
 			found = true
 			return filepath.SkipAll
 		}
@@ -175,7 +178,7 @@ func scanForMocks(projectDir string) []ValidationError {
 		if info.IsDir() && strings.Contains(path, ".ptsd") {
 			return filepath.SkipDir
 		}
-		if !strings.HasSuffix(path, "_test.go") && !strings.HasSuffix(path, ".test.ts") && !strings.HasSuffix(path, ".test.js") {
+		if !IsTestFile(path) {
 			return nil
 		}
 

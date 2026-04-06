@@ -9,14 +9,16 @@ import (
 )
 
 type Feature struct {
-	ID     string
-	Title  string
-	Status string
+	ID       string
+	Title    string
+	Status   string
+	Pipeline string
 }
 
 type FeatureDetail struct {
 	ID            string
 	Status        string
+	Pipeline      string
 	PRDAnchor     string
 	SeedStatus    string
 	ScenarioCount int
@@ -90,8 +92,12 @@ func ShowFeature(projectDir string, id string) (FeatureDetail, error) {
 	}
 
 	detail := FeatureDetail{
-		ID:     found.ID,
-		Status: found.Status,
+		ID:       found.ID,
+		Status:   found.Status,
+		Pipeline: found.Pipeline,
+	}
+	if detail.Pipeline == "" {
+		detail.Pipeline = resolveDefaultPipeline(projectDir)
 	}
 
 	seedDir := filepath.Join(projectDir, ".ptsd", "seeds", id)
@@ -211,6 +217,9 @@ func loadFeatures(projectDir string) ([]Feature, error) {
 				if strings.HasPrefix(next, "status: ") {
 					f.Status = strings.TrimPrefix(next, "status: ")
 				}
+				if strings.HasPrefix(next, "pipeline: ") {
+					f.Pipeline = strings.TrimPrefix(next, "pipeline: ")
+				}
 			}
 			features = append(features, f)
 		}
@@ -232,6 +241,9 @@ func saveFeatures(projectDir string, features []Feature) error {
 		}
 		b.WriteString("    title: " + title + "\n")
 		b.WriteString("    status: " + f.Status + "\n")
+		if f.Pipeline != "" {
+			b.WriteString("    pipeline: " + f.Pipeline + "\n")
+		}
 	}
 
 	return os.WriteFile(featPath, []byte(b.String()), 0644)
@@ -262,6 +274,57 @@ func readTestStats(projectDir string, featureID string) (total int, passed int) 
 		return len(tests), 0
 	}
 	return 0, 0
+}
+
+// AddFeatureWithPipeline creates a feature with a specific pipeline profile.
+func AddFeatureWithPipeline(projectDir string, id string, title string, pipeline string) error {
+	if pipeline != "" && !ValidPipelines[pipeline] {
+		return fmt.Errorf("err:validation invalid pipeline %q: must be full|standard|lite", pipeline)
+	}
+
+	if !validFeatureID.MatchString(id) {
+		return fmt.Errorf("err:validation invalid feature ID %q: must be ASCII slug (a-z0-9 with hyphens)", id)
+	}
+
+	features, err := loadFeatures(projectDir)
+	if err != nil {
+		return err
+	}
+
+	for _, f := range features {
+		if f.ID == id {
+			return fmt.Errorf("err:validation feature %s already exists", id)
+		}
+	}
+
+	features = append(features, Feature{ID: id, Title: title, Status: "planned", Pipeline: pipeline})
+	return saveFeatures(projectDir, features)
+}
+
+// UpdateFeaturePipeline changes a feature's pipeline profile.
+func UpdateFeaturePipeline(projectDir string, id string, pipeline string) error {
+	if !ValidPipelines[pipeline] {
+		return fmt.Errorf("err:validation invalid pipeline %q: must be full|standard|lite", pipeline)
+	}
+
+	features, err := loadFeatures(projectDir)
+	if err != nil {
+		return err
+	}
+
+	idx := -1
+	for i := range features {
+		if features[i].ID == id {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return fmt.Errorf("err:validation feature %s not found", id)
+	}
+
+	features[idx].Pipeline = pipeline
+	return saveFeatures(projectDir, features)
 }
 
 func parseTestStatus(content string, featureID string) string {

@@ -119,6 +119,13 @@ func CheckSeeds(projectDir string) ([]string, error) {
 		if f.Status == "planned" || f.Status == "deferred" {
 			continue
 		}
+		pipeline := f.Pipeline
+		if pipeline == "" {
+			pipeline = resolveDefaultPipeline(projectDir)
+		}
+		if !StageRequired(pipeline, "seed") {
+			continue
+		}
 		seedDir := filepath.Join(projectDir, ".ptsd", "seeds", f.ID)
 		seedPath := filepath.Join(seedDir, "seed.yaml")
 		if _, err := os.Stat(seedPath); os.IsNotExist(err) {

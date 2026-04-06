@@ -10,26 +10,32 @@ import (
 // InitResult reports what InitProject did.
 type InitResult struct {
 	Reinit bool
+	Tool   string
 }
 
 // InitProject scaffolds .ptsd/ directory structure in the given directory.
 // If .ptsd/ already exists, it performs a re-init (regenerates hooks, skills, CLAUDE.md section)
 // without touching project data files.
 // name is the project name written into ptsd.yaml; if empty, defaults to basename of dir.
-func InitProject(dir string, name string) (*InitResult, error) {
+// tool selects the AI tool adapter ("claude", "opencode", "generic"); if empty, auto-detected.
+func InitProject(dir string, name string, tool string) (*InitResult, error) {
 	// Require git repository.
 	gitDir := filepath.Join(dir, ".git")
 	if _, err := os.Stat(gitDir); err != nil {
 		return nil, fmt.Errorf("err:config git repository required")
 	}
 
+	if tool == "" {
+		tool = detectTool(dir)
+	}
+
 	// Auto-detect re-init.
 	ptsdDir := filepath.Join(dir, ".ptsd")
 	if _, err := os.Stat(ptsdDir); err == nil {
-		if err := ReInitProject(dir); err != nil {
+		if err := ReInitProjectWithTool(dir, tool); err != nil {
 			return nil, err
 		}
-		return &InitResult{Reinit: true}, nil
+		return &InitResult{Reinit: true, Tool: tool}, nil
 	}
 
 	if name == "" {
@@ -54,7 +60,7 @@ func InitProject(dir string, name string) (*InitResult, error) {
 	runner := detectTestRunner(dir)
 
 	// Write ptsd.yaml.
-	ptsdYAML, err := renderTemplate("templates/ptsd.yaml.tmpl", struct{ Name, Runner string }{name, runner})
+	ptsdYAML, err := renderTemplate("templates/ptsd.yaml.tmpl", struct{ Name, Runner, Tool string }{name, runner, tool})
 	if err != nil {
 		return nil, fmt.Errorf("err:io %w", err)
 	}
@@ -89,16 +95,6 @@ func InitProject(dir string, name string) (*InitResult, error) {
 		return nil, err
 	}
 
-	// Generate Claude Code skill discovery files.
-	if err := generateClaudeSkills(dir); err != nil {
-		return nil, err
-	}
-
-	// Write CLAUDE.md at project root (with markers for future re-init).
-	if err := updateClaudeMDSection(dir); err != nil {
-		return nil, err
-	}
-
 	// Write .gitignore if it doesn't exist.
 	gitignorePath := filepath.Join(dir, ".gitignore")
 	if _, err := os.Stat(gitignorePath); os.IsNotExist(err) {
@@ -108,7 +104,7 @@ func InitProject(dir string, name string) (*InitResult, error) {
 		}
 	}
 
-	// Install git hooks.
+	// Install git hooks (universal -- not tool-specific).
 	if err := GeneratePreCommitHook(dir); err != nil {
 		return nil, err
 	}
@@ -116,22 +112,60 @@ func InitProject(dir string, name string) (*InitResult, error) {
 		return nil, err
 	}
 
-	// Generate Claude Code hooks.
-	if err := generateClaudeHooks(dir); err != nil {
-		return nil, err
+	// Generate tool-specific adapter files.
+	switch tool {
+	case "claude":
+		if err := generateClaudeSkills(dir); err != nil {
+			return nil, err
+		}
+		if err := updateClaudeMDSection(dir); err != nil {
+			return nil, err
+		}
+		if err := generateClaudeHooks(dir); err != nil {
+			return nil, err
+		}
+	case "opencode":
+		if err := generateOpenCodeCommands(dir); err != nil {
+			return nil, err
+		}
+		if err := generateOpenCodePlugin(dir); err != nil {
+			return nil, err
+		}
+		if err := updateAgentsMDSection(dir); err != nil {
+			return nil, err
+		}
+	default:
+		if err := updateAgentsMDSection(dir); err != nil {
+			return nil, err
+		}
 	}
 
-	return &InitResult{Reinit: false}, nil
+	return &InitResult{Reinit: false, Tool: tool}, nil
+}
+
+// detectTool auto-detects the AI tool based on existing config directories.
+// Falls back to "claude" as the default.
+func detectTool(dir string) string {
+	if _, err := os.Stat(filepath.Join(dir, ".claude")); err == nil {
+		return "claude"
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".opencode")); err == nil {
+		return "opencode"
+	}
+	return "claude"
 }
 
 const ptsdMarker = "<!-- ---ptsd--- -->"
 
-// ReInitProject regenerates hooks, skills, and CLAUDE.md section without touching project data.
+// ReInitProject regenerates hooks, skills, and AI tool config without touching project data.
 func ReInitProject(dir string) error {
+	return ReInitProjectWithTool(dir, "")
+}
+
+// ReInitProjectWithTool regenerates with an explicit tool override.
+// If tool is empty, auto-detects from filesystem/config.
+func ReInitProjectWithTool(dir string, tool string) error {
 	if err := GenerateAllSkills(dir); err != nil {
-		return err
-	}
-	if err := generateClaudeSkills(dir); err != nil {
 		return err
 	}
 	if err := GeneratePreCommitHook(dir); err != nil {
@@ -140,11 +174,40 @@ func ReInitProject(dir string) error {
 	if err := GenerateCommitMsgHook(dir); err != nil {
 		return err
 	}
-	if err := generateClaudeHooks(dir); err != nil {
-		return err
+
+	if tool == "" {
+		tool = detectTool(dir)
+		cfg, err := LoadConfig(dir)
+		if err == nil && cfg.Project.Tool != "" {
+			tool = cfg.Project.Tool
+		}
 	}
-	if err := updateClaudeMDSection(dir); err != nil {
-		return err
+
+	switch tool {
+	case "claude":
+		if err := generateClaudeSkills(dir); err != nil {
+			return err
+		}
+		if err := generateClaudeHooks(dir); err != nil {
+			return err
+		}
+		if err := updateClaudeMDSection(dir); err != nil {
+			return err
+		}
+	case "opencode":
+		if err := generateOpenCodeCommands(dir); err != nil {
+			return err
+		}
+		if err := generateOpenCodePlugin(dir); err != nil {
+			return err
+		}
+		if err := updateAgentsMDSection(dir); err != nil {
+			return err
+		}
+	default:
+		if err := updateAgentsMDSection(dir); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -161,14 +224,14 @@ func updateClaudeMDSection(dir string) error {
 	path := filepath.Join(dir, "CLAUDE.md")
 	existing, err := os.ReadFile(path)
 	if err != nil {
-		// File doesn't exist — create with markers.
+		// File doesn't exist -- create with markers.
 		return writeFile(path, section+"\n")
 	}
 
 	content := string(existing)
 	first := strings.Index(content, ptsdMarker)
 	if first == -1 {
-		// No markers — append.
+		// No markers -- append.
 		if len(content) > 0 && !strings.HasSuffix(content, "\n") {
 			content += "\n"
 		}
@@ -178,12 +241,12 @@ func updateClaudeMDSection(dir string) error {
 
 	second := strings.Index(content[first+len(ptsdMarker):], ptsdMarker)
 	if second == -1 {
-		// Only one marker (malformed) — replace from first marker to end, append closing.
+		// Only one marker (malformed) -- replace from first marker to end, append closing.
 		content = content[:first] + section + "\n"
 		return writeFile(path, content)
 	}
 
-	// Both markers found — replace everything from first marker to end of second marker.
+	// Both markers found -- replace everything from first marker to end of second marker.
 	afterSecond := first + len(ptsdMarker) + second + len(ptsdMarker)
 	content = content[:first] + section + content[afterSecond:]
 	return writeFile(path, content)
@@ -240,6 +303,77 @@ func generateClaudeHooks(dir string) error {
 	return nil
 }
 
+// generateOpenCodePlugin creates .opencode/plugins/ptsd.ts for gate and track hooks.
+func generateOpenCodePlugin(dir string) error {
+	pluginDir := filepath.Join(dir, ".opencode", "plugins")
+	if err := os.MkdirAll(pluginDir, 0755); err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+
+	bin := ptsdBinaryPath()
+	content, err := renderTemplate("templates/opencode/plugin.ts", struct{ Bin string }{bin})
+	if err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+
+	return os.WriteFile(filepath.Join(pluginDir, "ptsd.ts"), []byte(content), 0644)
+}
+
+// generateOpenCodeCommands creates .opencode/commands/<name>.md for each standard skill.
+func generateOpenCodeCommands(dir string) error {
+	cmdDir := filepath.Join(dir, ".opencode", "commands")
+	if err := os.MkdirAll(cmdDir, 0755); err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+	for _, filename := range standardSkillFiles {
+		content, err := readTemplate("templates/skills/" + filename)
+		if err != nil {
+			return fmt.Errorf("err:io %w", err)
+		}
+		if err := os.WriteFile(filepath.Join(cmdDir, filename), []byte(content), 0644); err != nil {
+			return fmt.Errorf("err:io %w", err)
+		}
+	}
+	return nil
+}
+
+// updateAgentsMDSection writes or updates the ptsd-owned section in AGENTS.md using markers.
+// Same logic as updateClaudeMDSection but targets AGENTS.md.
+func updateAgentsMDSection(dir string) error {
+	claudeMD, err := readTemplate("templates/claude.md")
+	if err != nil {
+		return fmt.Errorf("err:io %w", err)
+	}
+
+	section := ptsdMarker + "\n" + claudeMD + "\n" + ptsdMarker
+
+	path := filepath.Join(dir, "AGENTS.md")
+	existing, err := os.ReadFile(path)
+	if err != nil {
+		return writeFile(path, section+"\n")
+	}
+
+	content := string(existing)
+	first := strings.Index(content, ptsdMarker)
+	if first == -1 {
+		if len(content) > 0 && !strings.HasSuffix(content, "\n") {
+			content += "\n"
+		}
+		content += "\n" + section + "\n"
+		return writeFile(path, content)
+	}
+
+	second := strings.Index(content[first+len(ptsdMarker):], ptsdMarker)
+	if second == -1 {
+		content = content[:first] + section + "\n"
+		return writeFile(path, content)
+	}
+
+	afterSecond := first + len(ptsdMarker) + second + len(ptsdMarker)
+	content = content[:first] + section + content[afterSecond:]
+	return writeFile(path, content)
+}
+
 func writeFile(path, content string) error {
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		return fmt.Errorf("err:io %w", err)
@@ -272,6 +406,26 @@ func detectTestRunner(dir string) string {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "pyproject.toml")); err == nil {
 		return "pytest"
+	}
+
+	// Check for Rust.
+	if _, err := os.Stat(filepath.Join(dir, "Cargo.toml")); err == nil {
+		return "cargo test"
+	}
+
+	// Check for Ruby.
+	if _, err := os.Stat(filepath.Join(dir, "Gemfile")); err == nil {
+		return "bundle exec rspec"
+	}
+
+	// Check for Java Maven.
+	if _, err := os.Stat(filepath.Join(dir, "pom.xml")); err == nil {
+		return "mvn test"
+	}
+
+	// Check for Java Gradle.
+	if _, err := os.Stat(filepath.Join(dir, "build.gradle")); err == nil {
+		return "gradle test"
 	}
 
 	return ""

@@ -11,7 +11,7 @@ import (
 
 func RunFeature(args []string, agentMode bool) int {
 	if len(args) == 0 {
-		return usageError(agentMode, "feature", "subcommand required: add|list|remove|status")
+		return usageError(agentMode, "feature", "subcommand required: add|list|remove|status|show|pipeline")
 	}
 
 	cwd, err := os.Getwd()
@@ -25,15 +25,32 @@ func RunFeature(args []string, agentMode bool) int {
 	switch sub {
 	case "add":
 		if len(rest) < 2 {
-			return usageError(agentMode, "feature add", "usage: feature add <id> <title>")
+			return usageError(agentMode, "feature add", "usage: feature add <id> <title> [--pipeline full|standard|lite]")
 		}
 		id := rest[0]
-		title := strings.Join(rest[1:], " ")
-		if err := core.AddFeature(cwd, id, title); err != nil {
+		pipeline := ""
+		var titleParts []string
+		for i := 1; i < len(rest); i++ {
+			if rest[i] == "--pipeline" && i+1 < len(rest) {
+				pipeline = rest[i+1]
+				i++
+			} else {
+				titleParts = append(titleParts, rest[i])
+			}
+		}
+		title := strings.Join(titleParts, " ")
+		if title == "" {
+			return usageError(agentMode, "feature add", "usage: feature add <id> <title> [--pipeline full|standard|lite]")
+		}
+		if err := core.AddFeatureWithPipeline(cwd, id, title, pipeline); err != nil {
 			return coreError(agentMode, err)
 		}
 		if agentMode {
-			fmt.Printf("feature.add id=%s\n", id)
+			if pipeline != "" {
+				fmt.Printf("feature.add id=%s pipeline=%s\n", id, pipeline)
+			} else {
+				fmt.Printf("feature.add id=%s\n", id)
+			}
 		} else {
 			fmt.Printf("Added feature: %s\n", id)
 		}
@@ -50,7 +67,11 @@ func RunFeature(args []string, agentMode bool) int {
 		}
 		if agentMode {
 			for _, f := range features {
-				fmt.Printf("%s [%s] %s\n", f.ID, f.Status, f.Title)
+				p := f.Pipeline
+				if p == "" {
+					p = "standard"
+				}
+				fmt.Printf("%s [%s:%s] %s\n", f.ID, f.Status, p, f.Title)
 			}
 		} else {
 			for _, f := range features {
@@ -102,6 +123,7 @@ func RunFeature(args []string, agentMode bool) int {
 		fv := render.FeatureView{
 			ID:          detail.ID,
 			Status:      detail.Status,
+			Pipeline:    detail.Pipeline,
 			PRDRange:    detail.PRDAnchor,
 			SeedStatus:  detail.SeedStatus,
 			BDDCount:    detail.ScenarioCount,
@@ -112,7 +134,23 @@ func RunFeature(args []string, agentMode bool) int {
 		fmt.Println(r.RenderFeatureShow(fv))
 		return 0
 
+	case "pipeline":
+		if len(rest) < 2 {
+			return usageError(agentMode, "feature pipeline", "usage: feature pipeline <id> <full|standard|lite>")
+		}
+		id := rest[0]
+		pipeline := rest[1]
+		if err := core.UpdateFeaturePipeline(cwd, id, pipeline); err != nil {
+			return coreError(agentMode, err)
+		}
+		if agentMode {
+			fmt.Printf("feature.pipeline id=%s pipeline=%s\n", id, pipeline)
+		} else {
+			fmt.Printf("Updated feature %s pipeline to %s\n", id, pipeline)
+		}
+		return 0
+
 	default:
-		return usageError(agentMode, "feature", fmt.Sprintf("unknown subcommand %q: use add|list|remove|status|show", sub))
+		return usageError(agentMode, "feature", fmt.Sprintf("unknown subcommand %q: use add|list|remove|status|show|pipeline", sub))
 	}
 }

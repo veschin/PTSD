@@ -79,6 +79,62 @@ func MapTest(projectDir string, bddFile string, testFile string) error {
 	return writeState(projectDir, state)
 }
 
+// MapTestDirect maps a test file to a feature directly (without BDD file).
+// Used for lite-pipeline features that skip BDD.
+func MapTestDirect(projectDir string, featureID string, testFile string) error {
+	features, err := loadFeatures(projectDir)
+	if err != nil {
+		return err
+	}
+	found := false
+	for _, f := range features {
+		if f.ID == featureID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("err:validation feature %s not found", featureID)
+	}
+
+	testPath := filepath.Join(projectDir, testFile)
+	if _, err := os.Stat(testPath); os.IsNotExist(err) {
+		return fmt.Errorf("err:validation test file %s not found", testFile)
+	}
+
+	state, err := LoadState(projectDir)
+	if err != nil {
+		return err
+	}
+
+	fs, ok := state.Features[featureID]
+	if !ok {
+		fs = FeatureState{
+			Hashes: make(map[string]string),
+			Scores: make(map[string]ScoreEntry),
+		}
+	}
+
+	mapping := "feature:" + featureID + "::" + testFile
+
+	var testsList []string
+	if fs.Tests != nil {
+		if existing, ok := fs.Tests.([]string); ok {
+			for _, t := range existing {
+				if t == mapping {
+					return nil // already mapped
+				}
+			}
+			testsList = existing
+		}
+	}
+	testsList = append(testsList, mapping)
+	fs.Tests = testsList
+	state.Features[featureID] = fs
+
+	return writeState(projectDir, state)
+}
+
 func CheckTestCoverage(projectDir string) ([]CoverageEntry, error) {
 	bddDir := filepath.Join(projectDir, ".ptsd", "bdd")
 	entries, err := os.ReadDir(bddDir)

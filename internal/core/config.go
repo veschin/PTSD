@@ -9,14 +9,16 @@ import (
 )
 
 type Config struct {
-	Project ProjectConfig
-	Testing TestingConfig
-	Review  ReviewConfig
-	Hooks   HooksConfig
+	Project  ProjectConfig
+	Testing  TestingConfig
+	Review   ReviewConfig
+	Hooks    HooksConfig
+	Pipeline PipelineConfig
 }
 
 type ProjectConfig struct {
 	Name string
+	Tool string
 }
 
 type TestingConfig struct {
@@ -46,6 +48,10 @@ type HooksConfig struct {
 	PreCommit bool
 	Scopes    []string
 	Types     []string
+}
+
+type PipelineConfig struct {
+	Default string
 }
 
 func LoadConfig(dir string) (*Config, error) {
@@ -147,8 +153,11 @@ func parseConfig(content string) (*Config, error) {
 			value = stripQuotes(value)
 
 			if currentSection == "project" {
-				if key == "name" {
+				switch key {
+				case "name":
 					cfg.Project.Name = value
+				case "tool":
+					cfg.Project.Tool = value
 				}
 			} else if currentSection == "testing" {
 				if currentSubSection == "patterns" && key == "files" {
@@ -202,6 +211,12 @@ func parseConfig(content string) (*Config, error) {
 						cfg.Hooks.Types = parseArray(lines, i)
 					}
 				}
+			} else if currentSection == "pipeline" {
+				if key == "default" {
+					if ValidPipelines[value] {
+						cfg.Pipeline.Default = value
+					}
+				}
 			}
 		}
 	}
@@ -233,9 +248,16 @@ func parseArray(lines []string, startIdx int) []string {
 
 func applyDefaults(cfg *Config) {
 	if len(cfg.Testing.Patterns.Files) == 0 {
-		cfg.Testing.Patterns.Files = []string{"**/*_test.go"}
+		if cfg.Testing.Runner != "" {
+			cfg.Testing.Patterns.Files = DefaultTestPatterns(cfg.Testing.Runner)
+		} else {
+			cfg.Testing.Patterns.Files = []string{"**/*_test.*", "**/*.test.*", "**/*.spec.*"}
+		}
 	}
 	if cfg.Review.MinScore == 0 {
 		cfg.Review.MinScore = 7
+	}
+	if cfg.Pipeline.Default == "" {
+		cfg.Pipeline.Default = "standard"
 	}
 }

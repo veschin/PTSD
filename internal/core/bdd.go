@@ -20,9 +20,12 @@ type ScenarioData struct {
 }
 
 func AddBDD(projectDir string, featureID string) error {
-	seedPath := filepath.Join(projectDir, ".ptsd", "seeds", featureID, "seed.yaml")
-	if _, err := os.Stat(seedPath); os.IsNotExist(err) {
-		return fmt.Errorf("err:pipeline %s has no seed", featureID)
+	pipeline := ResolveFeaturePipeline(projectDir, featureID)
+	if StageRequired(pipeline, "seed") {
+		seedPath := filepath.Join(projectDir, ".ptsd", "seeds", featureID, "seed.yaml")
+		if _, err := os.Stat(seedPath); os.IsNotExist(err) {
+			return fmt.Errorf("err:pipeline %s has no seed", featureID)
+		}
 	}
 
 	bddDir := filepath.Join(projectDir, ".ptsd", "bdd")
@@ -75,6 +78,13 @@ func CheckBDD(projectDir string) ([]string, error) {
 	var missing []string
 	for _, f := range features {
 		if f.Status == "planned" || f.Status == "deferred" {
+			continue
+		}
+		pipeline := f.Pipeline
+		if pipeline == "" {
+			pipeline = resolveDefaultPipeline(projectDir)
+		}
+		if !StageRequired(pipeline, "bdd") {
 			continue
 		}
 		bddPath := filepath.Join(bddDir, f.ID+".feature")

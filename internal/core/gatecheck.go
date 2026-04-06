@@ -13,7 +13,7 @@ type GateCheckResult struct {
 }
 
 // alwaysAllowed lists file paths that never require gate checks.
-// NOTE: review-status.yaml is NOT here — direct AI edits are blocked.
+// NOTE: review-status.yaml is NOT here -- direct AI edits are blocked.
 // AutoTrack (PostToolUse) updates it via Go code, bypassing the gate.
 // Use `ptsd review` to set review verdicts.
 var alwaysAllowed = map[string]bool{
@@ -24,6 +24,7 @@ var alwaysAllowed = map[string]bool{
 	".ptsd/ptsd.yaml":       true,
 	".ptsd/issues.yaml":     true,
 	"CLAUDE.md":             true,
+	"AGENTS.md":             true,
 	".claude/settings.json": true,
 }
 
@@ -48,7 +49,7 @@ func GateCheck(projectDir, filePath string) GateCheckResult {
 	if rel == ".ptsd/review-status.yaml" {
 		return GateCheckResult{
 			Allowed: false,
-			Reason:  "direct edits to review-status.yaml are blocked — use ptsd review",
+			Reason:  "direct edits to review-status.yaml are blocked -- use ptsd review",
 		}
 	}
 
@@ -62,21 +63,29 @@ func GateCheck(projectDir, filePath string) GateCheckResult {
 		return GateCheckResult{Allowed: true}
 	}
 
-	// BDD file → requires seed
+	// OpenCode files are always allowed
+	if strings.HasPrefix(rel, ".opencode/") {
+		return GateCheckResult{Allowed: true}
+	}
+
+	// BDD file -> requires seed (only for full pipeline)
 	if strings.HasPrefix(rel, ".ptsd/bdd/") && strings.HasSuffix(rel, ".feature") {
 		featureID := strings.TrimSuffix(filepath.Base(rel), ".feature")
-		seedPath := filepath.Join(projectDir, ".ptsd", "seeds", featureID, "seed.yaml")
-		if _, err := os.Stat(seedPath); os.IsNotExist(err) {
-			return GateCheckResult{
-				Allowed: false,
-				Reason:  "no seed for " + featureID + " — run: ptsd seed init " + featureID,
-				Feature: featureID,
+		pipeline := ResolveFeaturePipeline(projectDir, featureID)
+		if StageRequired(pipeline, "seed") {
+			seedPath := filepath.Join(projectDir, ".ptsd", "seeds", featureID, "seed.yaml")
+			if _, err := os.Stat(seedPath); os.IsNotExist(err) {
+				return GateCheckResult{
+					Allowed: false,
+					Reason:  "no seed for " + featureID + " -- run: ptsd seed init " + featureID,
+					Feature: featureID,
+				}
 			}
 		}
 		return GateCheckResult{Allowed: true, Feature: featureID}
 	}
 
-	// Seed file → requires PRD anchor
+	// Seed file -> requires PRD anchor
 	if strings.HasPrefix(rel, ".ptsd/seeds/") {
 		parts := strings.Split(rel, "/")
 		if len(parts) >= 3 {
@@ -102,23 +111,26 @@ func GateCheck(projectDir, filePath string) GateCheckResult {
 		}
 	}
 
-	// Test file → requires BDD
-	if strings.HasSuffix(rel, "_test.go") || strings.HasSuffix(rel, ".test.ts") || strings.HasSuffix(rel, ".test.js") {
+	// Test file -> requires BDD (only for full/standard pipeline)
+	if IsTestFile(rel) {
 		featureID := inferFeatureFromTestFile(projectDir, rel)
 		if featureID != "" {
-			bddPath := filepath.Join(projectDir, ".ptsd", "bdd", featureID+".feature")
-			if _, err := os.Stat(bddPath); os.IsNotExist(err) {
-				return GateCheckResult{
-					Allowed: false,
-					Reason:  "no BDD scenarios for " + featureID + " — run: ptsd bdd add " + featureID,
-					Feature: featureID,
+			pipeline := ResolveFeaturePipeline(projectDir, featureID)
+			if StageRequired(pipeline, "bdd") {
+				bddPath := filepath.Join(projectDir, ".ptsd", "bdd", featureID+".feature")
+				if _, err := os.Stat(bddPath); os.IsNotExist(err) {
+					return GateCheckResult{
+						Allowed: false,
+						Reason:  "no BDD scenarios for " + featureID + " -- run: ptsd bdd add " + featureID,
+						Feature: featureID,
+					}
 				}
 			}
 		}
 		return GateCheckResult{Allowed: true, Feature: featureID}
 	}
 
-	// Impl code → requires tests exist
+	// Impl code -> requires tests exist
 	if isImplFile(rel) {
 		featureID := inferFeatureFromImplFile(projectDir, rel)
 		if featureID != "" {
@@ -139,10 +151,7 @@ func GateCheck(projectDir, filePath string) GateCheckResult {
 
 func inferFeatureFromTestFile(projectDir, rel string) string {
 	base := filepath.Base(rel)
-	// Strip test suffixes
-	name := strings.TrimSuffix(base, "_test.go")
-	name = strings.TrimSuffix(name, ".test.ts")
-	name = strings.TrimSuffix(name, ".test.js")
+	name := StripTestSuffix(base)
 
 	// Check if this name matches a feature ID
 	features, err := loadFeatures(projectDir)
@@ -194,7 +203,7 @@ func matchFeatureID(name string, features []Feature) string {
 		}
 	}
 
-	// Longest substring match — prevents "auth" from matching "authorization"
+	// Longest substring match -- prevents "auth" from matching "authorization"
 	bestMatch := ""
 	bestLen := 0
 	for _, f := range features {

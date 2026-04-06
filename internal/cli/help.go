@@ -3,7 +3,7 @@ package cli
 import "fmt"
 
 func RunHelp(args []string, agentMode bool) int {
-	fmt.Println(`ptsd — PRD → Seed → BDD → Tests → Implementation
+	fmt.Println(`ptsd -- PRD -> Seed -> BDD -> Tests -> Implementation
 
 Project setup:
   init [--name <name>]     Initialize .ptsd/, .claude/, git hooks
@@ -15,12 +15,13 @@ Features:
   feature status <id> <s>  Set status (planned/in-progress/done)
   feature show <id>        Show feature details
   feature remove <id>      Remove a feature
+  feature pipeline <id> <p> Change pipeline (full/standard/lite)
 
 Pipeline:
   seed add <feature>       Initialize seed data
   bdd add <feature>        Initialize BDD scenarios
   prd check                Validate PRD anchors
-  test map <f> <file>      Map test file to feature
+  test map <f> <file>      Map test file (BDD or --feature)
   test run <feature>       Run feature's tests
   review <f> <stage> <n>   Record review (score 0-10)
   validate                 Check all pipeline gates
@@ -36,6 +37,7 @@ Other:
   config show              Show config
   skills                   List pipeline skills
   issues                   Common issues registry
+  migrate                  Migrate project to current version
   completion bash|fish     Shell completion script
   help                     This message
   version                  Show version

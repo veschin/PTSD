@@ -139,6 +139,11 @@ func RecordReview(projectDir string, featureID string, stage string, score int) 
 		return fmt.Errorf("err:user invalid stage %q: must be prd|seed|bdd|tests|impl", stage)
 	}
 
+	pipeline := ResolveFeaturePipeline(projectDir, featureID)
+	if !StageRequired(pipeline, stage) {
+		return fmt.Errorf("err:user stage %q is not part of %s pipeline for feature %s", stage, pipeline, featureID)
+	}
+
 	state, err := LoadState(projectDir)
 	if err != nil {
 		return err

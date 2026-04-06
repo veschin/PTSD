@@ -21,9 +21,9 @@ func RunContext(args []string, agentMode bool) int {
 	for _, line := range result.Lines {
 		switch line.Type {
 		case core.ContextNext:
-			fmt.Printf("next: %s stage=%s action=%s\n", line.Feature, line.Stage, line.Action)
+			fmt.Printf("next: %s stage=%s action=%s pipeline=%s\n", line.Feature, line.Stage, line.Action, line.Pipeline)
 		case core.ContextBlocked:
-			fmt.Printf("blocked: %s stage=%s reason=%q\n", line.Feature, line.Stage, line.Reason)
+			fmt.Printf("blocked: %s stage=%s reason=%q pipeline=%s\n", line.Feature, line.Stage, line.Reason, line.Pipeline)
 		case core.ContextDone:
 			fmt.Printf("done: %s stage=%s\n", line.Feature, line.Stage)
 		case core.ContextTask:

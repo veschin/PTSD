@@ -15,11 +15,12 @@ const (
 )
 
 type ContextLine struct {
-	Type    ContextLineType
-	Feature string
-	Stage   string
-	Action  string
-	Reason  string
+	Type     ContextLineType
+	Feature  string
+	Stage    string
+	Action   string
+	Reason   string
+	Pipeline string
 	// Task fields (only when Type == ContextTask)
 	TaskID     string
 	TaskStatus string
@@ -28,13 +29,6 @@ type ContextLine struct {
 
 type ContextResult struct {
 	Lines []ContextLine
-}
-
-var stageActions = map[string]string{
-	"prd":   "write-seed",
-	"seed":  "write-bdd",
-	"bdd":   "write-tests",
-	"tests": "write-impl",
 }
 
 func BuildContext(projectDir string) (ContextResult, error) {
@@ -68,6 +62,11 @@ func BuildContext(projectDir string) (ContextResult, error) {
 			review = entry.Review
 		}
 
+		pipeline := f.Pipeline
+		if pipeline == "" {
+			pipeline = resolveDefaultPipeline(projectDir)
+		}
+
 		// Determine stage from artifacts if review-status is empty
 		if stage == "" {
 			stage = ComputeStageFromArtifacts(projectDir, f.ID)
@@ -85,54 +84,53 @@ func BuildContext(projectDir string) (ContextResult, error) {
 		// Check for blockers
 		if review == "failed" {
 			result.Lines = append(result.Lines, ContextLine{
-				Type:    ContextBlocked,
-				Feature: f.ID,
-				Stage:   stage,
-				Reason:  fmt.Sprintf("review failed at %s stage", stage),
+				Type:     ContextBlocked,
+				Feature:  f.ID,
+				Stage:    stage,
+				Reason:   fmt.Sprintf("review failed at %s stage", stage),
+				Pipeline: pipeline,
 			})
 			continue
 		}
 
 		// Check missing prerequisites
-		if blocked, reason := checkPrerequisite(projectDir, f.ID, stage); blocked {
+		if blocked, reason := checkPrerequisite(projectDir, f.ID, stage, pipeline); blocked {
 			result.Lines = append(result.Lines, ContextLine{
-				Type:    ContextBlocked,
-				Feature: f.ID,
-				Stage:   stage,
-				Reason:  reason,
+				Type:     ContextBlocked,
+				Feature:  f.ID,
+				Stage:    stage,
+				Reason:   reason,
+				Pipeline: pipeline,
 			})
 			continue
 		}
 
 		if stage == "impl" && review == "passed" {
-			result.Lines = append(result.Lines, ContextLine{
-				Type:    ContextDone,
-				Feature: f.ID,
-				Stage:   stage,
-			})
-			continue
+			continue // skip done features -- saves tokens
 		}
 
 		if stage == "impl" && review == "pending" {
 			result.Lines = append(result.Lines, ContextLine{
-				Type:    ContextNext,
-				Feature: f.ID,
-				Stage:   stage,
-				Action:  "review-impl",
+				Type:     ContextNext,
+				Feature:  f.ID,
+				Stage:    stage,
+				Action:   "review-impl",
+				Pipeline: pipeline,
 			})
 			continue
 		}
 
-		action, ok := stageActions[stage]
-		if !ok {
-			action = "write-seed"
+		action := NextAction(pipeline, stage)
+		if action == "" {
+			action = "review-" + stage
 		}
 
 		result.Lines = append(result.Lines, ContextLine{
-			Type:    ContextNext,
-			Feature: f.ID,
-			Stage:   stage,
-			Action:  action,
+			Type:     ContextNext,
+			Feature:  f.ID,
+			Stage:    stage,
+			Action:   action,
+			Pipeline: pipeline,
 		})
 	}
 
@@ -165,17 +163,21 @@ func loadStateStage(projectDir, featureID string) string {
 	return ""
 }
 
-func checkPrerequisite(projectDir, featureID, stage string) (blocked bool, reason string) {
+func checkPrerequisite(projectDir, featureID, stage, pipeline string) (blocked bool, reason string) {
 	switch stage {
 	case "bdd":
-		seedPath := filepath.Join(projectDir, ".ptsd", "seeds", featureID, "seed.yaml")
-		if !fileExists(seedPath) {
-			return true, "missing seed"
+		if StageRequired(pipeline, "seed") {
+			seedPath := filepath.Join(projectDir, ".ptsd", "seeds", featureID, "seed.yaml")
+			if !fileExists(seedPath) {
+				return true, "missing seed"
+			}
 		}
 	case "tests":
-		bddPath := filepath.Join(projectDir, ".ptsd", "bdd", featureID+".feature")
-		if !fileExists(bddPath) {
-			return true, "missing bdd"
+		if StageRequired(pipeline, "bdd") {
+			bddPath := filepath.Join(projectDir, ".ptsd", "bdd", featureID+".feature")
+			if !fileExists(bddPath) {
+				return true, "missing bdd"
+			}
 		}
 	}
 	return false, ""

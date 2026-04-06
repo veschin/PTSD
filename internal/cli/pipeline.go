@@ -209,24 +209,53 @@ func RunTest(args []string, agentMode bool) int {
 		}
 		return 0
 	case "map":
-		if len(args) < 3 {
-			fmt.Fprintln(os.Stderr, "err:user usage: ptsd test map <bdd-file> <test-file>")
-			return 2
-		}
-		bddFile := args[1]
-		testFile := args[2]
 		dir, err := os.Getwd()
 		if err != nil {
 			return coreError(agentMode, err)
 		}
-		err = core.MapTest(dir, bddFile, testFile)
-		if err != nil {
-			return coreError(agentMode, err)
+
+		featureID := ""
+		var positional []string
+		for i := 1; i < len(args); i++ {
+			if args[i] == "--feature" && i+1 < len(args) {
+				featureID = args[i+1]
+				i++
+			} else {
+				positional = append(positional, args[i])
+			}
 		}
-		if agentMode {
-			fmt.Printf("mapped: %s -> %s\n", bddFile, testFile)
+
+		if featureID != "" {
+			if len(positional) < 1 {
+				fmt.Fprintln(os.Stderr, "err:user usage: ptsd test map --feature <id> <test-file>")
+				return 2
+			}
+			testFile := positional[0]
+			err = core.MapTestDirect(dir, featureID, testFile)
+			if err != nil {
+				return coreError(agentMode, err)
+			}
+			if agentMode {
+				fmt.Printf("mapped: %s -> %s\n", featureID, testFile)
+			} else {
+				fmt.Printf("Mapped %s to %s\n", featureID, testFile)
+			}
 		} else {
-			fmt.Printf("Mapped %s to %s\n", bddFile, testFile)
+			if len(positional) < 2 {
+				fmt.Fprintln(os.Stderr, "err:user usage: ptsd test map <bdd-file> <test-file> | ptsd test map --feature <id> <test-file>")
+				return 2
+			}
+			bddFile := positional[0]
+			testFile := positional[1]
+			err = core.MapTest(dir, bddFile, testFile)
+			if err != nil {
+				return coreError(agentMode, err)
+			}
+			if agentMode {
+				fmt.Printf("mapped: %s -> %s\n", bddFile, testFile)
+			} else {
+				fmt.Printf("Mapped %s to %s\n", bddFile, testFile)
+			}
 		}
 		return 0
 	default:

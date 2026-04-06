@@ -16,17 +16,18 @@ func RunInit(args []string, agentMode bool) int {
 	}
 
 	name := ""
+	tool := ""
 	for i, arg := range args {
 		if arg == "--name" && i+1 < len(args) {
 			name = args[i+1]
-			break
-		}
-		if !strings.HasPrefix(arg, "-") && name == "" {
+		} else if arg == "--tool" && i+1 < len(args) {
+			tool = args[i+1]
+		} else if !strings.HasPrefix(arg, "-") && name == "" {
 			name = arg
 		}
 	}
 
-	result, err := core.InitProject(cwd, name)
+	result, err := core.InitProject(cwd, name, tool)
 	if err != nil {
 		return coreError(agentMode, err)
 	}
@@ -67,12 +68,15 @@ func RunAdopt(args []string, agentMode bool) int {
 			return coreError(agentMode, err)
 		}
 		if agentMode {
-			fmt.Printf("dry-run:ok bdd:%d tests:%d features:%s\n",
-				len(result.BDDFiles), len(result.TestFiles), result.FeaturesFile)
+			fmt.Printf("dry-run:ok bdd:%d tests:%d go:%d features:%s\n",
+				len(result.BDDFiles), len(result.TestFiles), len(result.GoPackages), result.FeaturesFile)
 		} else {
-			fmt.Printf("Dry run — would create: %s\n", result.FeaturesFile)
+			fmt.Printf("Dry run -- would create: %s\n", result.FeaturesFile)
 			fmt.Printf("BDD features found: %d\n", len(result.BDDFiles))
 			fmt.Printf("Test files found: %d\n", len(result.TestFiles))
+			if len(result.GoPackages) > 0 {
+				fmt.Printf("Test features found: %d (added as deferred)\n", len(result.GoPackages))
+			}
 		}
 		return 0
 	}

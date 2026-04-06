@@ -32,6 +32,7 @@ type TaskView struct {
 type FeatureView struct {
 	ID          string
 	Status      string
+	Pipeline    string
 	PRDRange    string
 	SeedStatus  string
 	BDDCount    int
@@ -107,8 +108,12 @@ func (r *AgentRenderer) RenderFeatureShow(feature FeatureView) string {
 	}
 	scoresStr := strings.Join(scoresParts, ",")
 
-	result := fmt.Sprintf("%s [%s] PRD:%s SEED:%s BDD:%dscn TEST:%d/%d",
-		feature.ID, feature.Status,
+	p := feature.Pipeline
+	if p == "" {
+		p = "standard"
+	}
+	result := fmt.Sprintf("%s [%s:%s] PRD:%s SEED:%s BDD:%dscn TEST:%d/%d",
+		feature.ID, feature.Status, p,
 		feature.PRDRange, feature.SeedStatus,
 		feature.BDDCount, feature.TestCovered, feature.TestTotal)
 

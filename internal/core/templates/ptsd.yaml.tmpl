@@ -1,12 +1,13 @@
 project:
   name: "{{.Name}}"
+  tool: "{{.Tool}}"
 
 testing:
 {{- if .Runner}}
   runner: "{{.Runner}}"
 {{- end}}
   patterns:
-    files: ["**/*_test.go"]
+    files: []
 
 review:
   min_score: 7
@@ -16,3 +17,6 @@ hooks:
   pre_commit: true
   scopes: [PRD, SEED, BDD, TEST, IMPL, TASK, STATUS]
   types: [feat, add, fix, refactor, remove, update]
+
+pipeline:
+  default: standard

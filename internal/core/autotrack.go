@@ -80,7 +80,7 @@ func AutoTrack(projectDir, filePath string) (*AutoTrackResult, error) {
 			return nil, err
 		}
 
-		// Sync state.yaml — errors are non-blocking
+		// Sync state.yaml -- errors are non-blocking
 		if st, err := LoadState(projectDir); err == nil {
 			sfs, ok := st.Features[featureID]
 			if !ok {
@@ -140,7 +140,7 @@ func classifyForTracking(projectDir, rel string) (featureID, stage, tests string
 	}
 
 	// Test file
-	if strings.HasSuffix(rel, "_test.go") || strings.HasSuffix(rel, ".test.ts") || strings.HasSuffix(rel, ".test.js") {
+	if IsTestFile(rel) {
 		featureID = inferFeatureFromTestFile(projectDir, rel)
 		if featureID != "" {
 			return featureID, "tests", "written"
