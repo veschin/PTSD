@@ -414,21 +414,34 @@ var skillIndex = 0;
 var skillNames = [];
 
 function highlightSkill(raw) {
-  // colorize markdown-like syntax with nibelung light palette
-  return raw
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/^(#{1,3} .+)$/gm, '<span class="cl-k">$1</span>')
-    .replace(/^(- \[[ x]\].+)$/gm, '<span class="cl-t">$1</span>')
-    .replace(/^(- .+)$/gm, function(m) {
-      // errors in red if under "Common Mistakes"
-      return '<span class="cl-e">' + m + '</span>';
-    })
-    .replace(/^(\d+\..+)$/gm, '<span class="cl-s">$1</span>')
-    .replace(/^(---[\s\S]*?---)$/m, function(m) {
-      return '<span class="cl-c">' + m + '</span>';
-    })
-    .replace(/^(&gt;.+)$/gm, '<span class="cl-k">$1</span>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>');
+  var escaped = raw
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // Split into sections to apply context-aware coloring
+  var inMistakes = false;
+  var lines = escaped.split('\n').map(function(line) {
+    // Track if we're in Common Mistakes section
+    if (/^#{1,3} .*[Mm]istakes/.test(line)) inMistakes = true;
+    else if (/^#{1,3} /.test(line)) inMistakes = false;
+
+    // Frontmatter
+    if (line === '---') return '<span class="cl-c">' + line + '</span>';
+    // Headings
+    if (/^#{1,3} /.test(line)) return '<span class="cl-k">' + line + '</span>';
+    // Blockquotes
+    if (/^&gt;/.test(line)) return '<span class="cl-k">' + line + '</span>';
+    // Checklist items
+    if (/^- \[[ x]\]/.test(line)) return '<span class="cl-t">' + line + '</span>';
+    // Bullet items: red only in mistakes section
+    if (/^- /.test(line)) return '<span class="' + (inMistakes ? 'cl-e' : 'cl-s') + '">' + line + '</span>';
+    // Numbered instructions
+    if (/^\d+\./.test(line)) return '<span class="cl-s">' + line + '</span>';
+    // Frontmatter key: value
+    if (/^[a-z]+:/.test(line)) return '<span class="cl-c">' + line + '</span>';
+    return line;
+  });
+
+  return lines.join('\n').replace(/`([^`]+)`/g, '<code>$1</code>');
 }
 
 function showSkill(i) {

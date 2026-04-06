@@ -198,7 +198,7 @@ next: config stage=prd action=write-tests pipeline=lite</pre>
         </div>
       </div>
 
-      <p class="ef-note">Review gate: each stage requires a score of 7/10 or higher. Scores below threshold auto-create redo tasks.</p>
+      <p class="ef-note">Review gate: each stage requires a score of at least 7/10 to advance. Scores below threshold auto-create redo tasks.</p>
     </div>
   </section>
 
@@ -206,7 +206,7 @@ next: config stage=prd action=write-tests pipeline=lite</pre>
   <section id="skills">
     <div class="wrap">
       <h2 class="sec-title">Skills</h2>
-      <p class="sec-sub">13 instruction sets, one per pipeline action. Loaded automatically during the relevant stage. The AI follows a checklist, not intuition.</p>
+      <p class="sec-sub">13 instruction sets, one per pipeline action. Each skill is a markdown file placed in the AI tool's discovery path. The AI follows a checklist, not intuition.</p>
 
       <div class="skill-browser">
         <div class="skill-nav">
@@ -281,10 +281,10 @@ next: config stage=prd action=write-tests pipeline=lite</pre>
             <td class="cmp-hi">8 languages</td>
           </tr>
           <tr>
-            <td class="cmp-l">Token cost</td>
-            <td class="cmp-none">0</td>
-            <td>2x/message</td>
-            <td class="cmp-hi">1x/session</td>
+            <td class="cmp-l">Context hook</td>
+            <td class="cmp-none">N/A</td>
+            <td>SessionStart + UserPromptSubmit</td>
+            <td class="cmp-hi">SessionStart only</td>
           </tr>
           <tr>
             <td class="cmp-l">Existing projects</td>
