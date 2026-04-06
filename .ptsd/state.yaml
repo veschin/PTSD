@@ -49,7 +49,7 @@ features:
     hashes:
       bdd: 4f4410f31319e38f947d5b1545cd9f506e962108af55f7e6b796b047f946dc03
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
-      test: 4d5e25b1bd3eb9bb1588c6441c54e57a0901b1b2850224e9e929298ceb75a613
+      test: 0f6b143c4ca90d23b5923c29770aa0235b7ff4d6ee4a95b40c66889de4e8947c
     scores:
     tests:
       - .ptsd/bdd/git-hooks.feature::internal/core/hooks_test.go
@@ -112,7 +112,7 @@ features:
     hashes:
       bdd: f378c1e2e2ec7928f8ff96f30526937167bbca8be09a84ba24d3118050737b88
       prd: 34e40329b08c13b659d277fff2d67dad3ecc5613f30e346bd52422885117a589
-      test: 953d8b778e8b998b98a9e2c0bb09dcfd21ec3f46b5d25a159b46e8a59f3dccc1
+      test: f3b5a417065d9e7eeea630bffb892aa5df69ef9961280cd60d0b3cfaa987713e
     scores:
     tests:
       - .ptsd/bdd/state-tracking.feature::internal/core/state_test.go
