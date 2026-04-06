@@ -214,7 +214,7 @@ func TestRunFeature_Add_DuplicateId_Error(t *testing.T) {
 	})
 	exitCode := RunFeature([]string{"add", "my-feat", "Duplicate"}, true)
 
-	// duplicate feature is a validation error — exit code 1
+	// duplicate feature is a validation error -- exit code 1
 	if exitCode != 1 {
 		t.Errorf("expected exit code 1 for duplicate feature, got %d", exitCode)
 	}
@@ -265,12 +265,12 @@ func TestRunFeature_List_AgentFormat(t *testing.T) {
 		RunFeature([]string{"list"}, true)
 	})
 
-	// Agent format: "<id> [<status>] <title>"
+	// Agent format: "<id> [<status>:<pipeline>] <title>"
 	if !strings.Contains(out, "feat-alpha") {
 		t.Errorf("expected feature id in output, got: %q", out)
 	}
-	if !strings.Contains(out, "[planned]") {
-		t.Errorf("expected [planned] status in agent output, got: %q", out)
+	if !strings.Contains(out, "[planned:") {
+		t.Errorf("expected [planned:<pipeline>] status in agent output, got: %q", out)
 	}
 }
 
@@ -397,7 +397,7 @@ func TestRunFeature_Remove_NotFound_Error(t *testing.T) {
 	setupPTSDDir(t, dir)
 	chdir(t, dir)
 
-	// not found is a validation error — exit code 1
+	// not found is a validation error -- exit code 1
 	code := RunFeature([]string{"remove", "nonexistent"}, true)
 	if code != 1 {
 		t.Errorf("expected exit code 1 for nonexistent feature, got %d", code)
@@ -483,7 +483,7 @@ func TestRunFeature_Status_InvalidStatus_Error(t *testing.T) {
 
 	RunFeature([]string{"add", "my-feat", "My Feature"}, true)
 
-	// invalid status is a validation error — exit code 1
+	// invalid status is a validation error -- exit code 1
 	code := RunFeature([]string{"status", "my-feat", "invalid-status"}, true)
 	if code != 1 {
 		t.Errorf("expected exit code 1 for invalid status, got %d", code)
@@ -518,7 +518,7 @@ func TestRunFeature_Status_ImplementedRequiresPassingTests(t *testing.T) {
 	out := captureStderr(t, func() {
 		RunFeature([]string{"status", "my-feat", "implemented"}, true)
 	})
-	// pipeline error — exit code 1
+	// pipeline error -- exit code 1
 	exitCode := RunFeature([]string{"status", "my-feat", "implemented"}, true)
 
 	if exitCode != 1 {
@@ -647,7 +647,7 @@ func TestRunFeature_Show_NotFound_Error(t *testing.T) {
 	setupPTSDDir(t, dir)
 	chdir(t, dir)
 
-	// not found is a validation error — exit code 1
+	// not found is a validation error -- exit code 1
 	code := RunFeature([]string{"show", "nonexistent"}, true)
 	if code != 1 {
 		t.Errorf("expected exit code 1 for nonexistent feature, got %d", code)

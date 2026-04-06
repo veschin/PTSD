@@ -86,14 +86,11 @@ func TestBuildContext_Done(t *testing.T) {
 		t.Fatalf("BuildContext: %v", err)
 	}
 
-	found := false
+	// Done features are filtered out entirely to save tokens.
 	for _, line := range result.Lines {
-		if line.Feature == "auth" && line.Type == ContextDone {
-			found = true
+		if line.Feature == "auth" {
+			t.Errorf("expected done feature auth to be absent from context, got: %+v", line)
 		}
-	}
-	if !found {
-		t.Errorf("expected auth to be done, got: %+v", result.Lines)
 	}
 }
 
@@ -193,7 +190,7 @@ func TestBuildContext_NoReviewStatusDefaultsToPrd(t *testing.T) {
 	dir := setupProjectWithFeatures(t, "auth:in-progress")
 	ptsd := filepath.Join(dir, ".ptsd")
 
-	// Empty review-status — no entry for auth
+	// Empty review-status -- no entry for auth
 	os.WriteFile(filepath.Join(ptsd, "review-status.yaml"), []byte("features: {}\n"), 0644)
 	os.WriteFile(filepath.Join(ptsd, "tasks.yaml"), []byte("tasks: []\n"), 0644)
 

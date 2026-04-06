@@ -36,6 +36,12 @@ func setupProjectWithFeatures(t *testing.T, features ...string) string {
 		t.Fatal(err)
 	}
 
+	// Default to full pipeline so tests that check seed/bdd prerequisites work correctly.
+	cfgContent := "pipeline:\n  default: full\n"
+	if err := os.WriteFile(filepath.Join(ptsdDir, "ptsd.yaml"), []byte(cfgContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
 	seedsDir := filepath.Join(ptsdDir, "seeds")
 	if err := os.Mkdir(seedsDir, 0755); err != nil {
 		t.Fatal(err)

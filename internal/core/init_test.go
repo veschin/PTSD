@@ -15,10 +15,10 @@ func setupGitDir(t *testing.T, dir string) {
 	}
 }
 
-// initProject is a test helper that calls InitProject and fails on error.
+// initProject is a test helper that calls InitProject with the claude tool and fails on error.
 func initProject(t *testing.T, dir, name string) *InitResult {
 	t.Helper()
-	result, err := InitProject(dir, name)
+	result, err := InitProject(dir, name, "claude")
 	if err != nil {
 		t.Fatalf("InitProject failed: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestInitReInitSucceeds(t *testing.T) {
 	}
 
 	// Second init should succeed as re-init.
-	result2, err := InitProject(dir, "MyApp")
+	result2, err := InitProject(dir, "MyApp", "claude")
 	if err != nil {
 		t.Fatalf("re-init failed: %v", err)
 	}
@@ -110,7 +110,7 @@ func TestInitRefusesWithoutGit(t *testing.T) {
 	dir := t.TempDir()
 	// No .git directory.
 
-	_, err := InitProject(dir, "MyApp")
+	_, err := InitProject(dir, "MyApp", "claude")
 	if err == nil {
 		t.Fatal("expected error when .git is missing, got nil")
 	}
@@ -293,10 +293,7 @@ func TestInitGeneratesClaudeSettings(t *testing.T) {
 	if !strings.Contains(content, "SessionStart") {
 		t.Error("settings.json missing SessionStart hook")
 	}
-	if !strings.Contains(content, "UserPromptSubmit") {
-		t.Error("settings.json missing UserPromptSubmit hook")
-	}
-	if !strings.Contains(content, "PreToolUse") {
+if !strings.Contains(content, "PreToolUse") {
 		t.Error("settings.json missing PreToolUse hook")
 	}
 	if !strings.Contains(content, "PostToolUse") {

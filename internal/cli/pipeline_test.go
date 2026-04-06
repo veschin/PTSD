@@ -112,7 +112,7 @@ func TestRunPrdCheckMissingAnchor(t *testing.T) {
 func TestRunPrdCheckNoPRDFile(t *testing.T) {
 	dir := setupPipelineProject(t)
 	chdirTo(t, dir)
-	// No PRD.md written — io error expected (err:io → exit 4)
+	// No PRD.md written -- io error expected (err:io -> exit 4)
 
 	code := RunPrd([]string{"check"}, true)
 	if code != 4 {
@@ -138,7 +138,7 @@ func TestRunSeedAddMissingArgs(t *testing.T) {
 }
 
 func TestRunSeedAddMissingFileArg(t *testing.T) {
-	// "add feature" — still missing file argument
+	// "add feature" -- still missing file argument
 	code := RunSeed([]string{"add", "my-feat"}, true)
 	if code != 2 {
 		t.Errorf("expected exit 2 for missing file arg, got %d", code)
@@ -186,7 +186,7 @@ func TestRunSeedAddSeedNotInitialized(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// No seed.yaml initialized for "my-feat" — err:validation → exit 1
+	// No seed.yaml initialized for "my-feat" -- err:validation -> exit 1
 	var code int
 	out := captureStderr(t, func() {
 		code = RunSeed([]string{"add", "my-feat", srcFile}, true)
@@ -257,7 +257,10 @@ func TestRunBddAddSuccess(t *testing.T) {
 func TestRunBddAddWithoutSeed(t *testing.T) {
 	dir := setupPipelineProject(t)
 	chdirTo(t, dir)
-	// No seed initialized — err:pipeline → exit 1
+	// Set pipeline to full so seed IS required
+	featuresYAML := "features:\n  - id: my-feat\n    status: in-progress\n    pipeline: full\n"
+	os.WriteFile(filepath.Join(dir, ".ptsd", "features.yaml"), []byte(featuresYAML), 0644)
+	// No seed initialized -- err:pipeline -> exit 1
 
 	var code int
 	out := captureStderr(t, func() {
@@ -275,8 +278,8 @@ func TestRunBddListEmpty(t *testing.T) {
 	dir := setupPipelineProject(t)
 	chdirTo(t, dir)
 
-	// list with no feature arg: ShowBDD reads "<dir>/.ptsd/bdd/.feature" — not found.
-	// coreError maps err:validation → exit 1.
+	// list with no feature arg: ShowBDD reads "<dir>/.ptsd/bdd/.feature" -- not found.
+	// coreError maps err:validation -> exit 1.
 	code := RunBdd([]string{"list"}, true)
 	if code != 1 {
 		t.Errorf("expected exit 1 (validation error) for list with empty feature ID, got %d", code)
@@ -311,7 +314,7 @@ func TestRunBddListNonexistentFeature(t *testing.T) {
 	dir := setupPipelineProject(t)
 	chdirTo(t, dir)
 
-	// "ghost" has no .feature file — ShowBDD returns err:validation → exit 1
+	// "ghost" has no .feature file -- ShowBDD returns err:validation -> exit 1
 	var code int
 	out := captureStderr(t, func() {
 		code = RunBdd([]string{"list", "ghost"}, true)
@@ -349,7 +352,7 @@ func TestRunTestMapMissingArgs(t *testing.T) {
 }
 
 func TestRunTestMapMissingTestFileArg(t *testing.T) {
-	// "map bdd-file" — missing test-file arg
+	// "map bdd-file" -- missing test-file arg
 	code := RunTest([]string{"map", ".ptsd/bdd/my-feat.feature"}, true)
 	if code != 2 {
 		t.Errorf("expected exit 2 for missing test-file arg, got %d", code)
@@ -384,7 +387,7 @@ func TestRunTestMapBDDNotFound(t *testing.T) {
 	dir := setupPipelineProject(t)
 	chdirTo(t, dir)
 
-	// BDD file does not exist — err:io → exit 4
+	// BDD file does not exist -- err:io -> exit 4
 	var code int
 	out := captureStderr(t, func() {
 		code = RunTest([]string{"map", ".ptsd/bdd/ghost.feature", "some_test.go"}, true)
@@ -428,7 +431,7 @@ func TestRunTestRunNoRunnerConfigured(t *testing.T) {
 	}
 
 	code := RunTest([]string{"run"}, true)
-	// err:config → exit code 3
+	// err:config -> exit code 3
 	if code != 3 {
 		t.Errorf("expected exit 3 (config error) when no runner configured, got %d", code)
 	}
@@ -504,7 +507,7 @@ func TestRunTestRunWithFailingTests(t *testing.T) {
 	}
 
 	code := RunTest([]string{"run"}, true)
-	// Failed tests → exit 5
+	// Failed tests -> exit 5
 	if code != 5 {
 		t.Errorf("expected exit 5 when tests fail, got %d", code)
 	}
@@ -568,7 +571,7 @@ func TestRunPrdHumanModeError(t *testing.T) {
 	dir := setupPipelineProject(t)
 	chdirTo(t, dir)
 
-	// PRD missing anchor for my-feat → errors written to stderr, exit 1
+	// PRD missing anchor for my-feat -> errors written to stderr, exit 1
 	prd := "# PRD\nNo anchors here\n"
 	if err := os.WriteFile(filepath.Join(dir, ".ptsd", "docs", "PRD.md"), []byte(prd), 0644); err != nil {
 		t.Fatal(err)
@@ -618,7 +621,7 @@ func TestRunSeedHumanModeError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// No seed initialized — err:validation → exit 1 in human mode too
+	// No seed initialized -- err:validation -> exit 1 in human mode too
 	var code int
 	out := captureStderr(t, func() {
 		code = RunSeed([]string{"add", "my-feat", srcFile}, false)
@@ -658,8 +661,10 @@ func TestRunBddHumanModeSuccess(t *testing.T) {
 func TestRunBddHumanModeError(t *testing.T) {
 	dir := setupPipelineProject(t)
 	chdirTo(t, dir)
-
-	// No seed initialized — err:pipeline → exit 1 in human mode too
+	// Set pipeline to full so seed IS required
+	featuresYAML := "features:\n  - id: my-feat\n    status: in-progress\n    pipeline: full\n"
+	os.WriteFile(filepath.Join(dir, ".ptsd", "features.yaml"), []byte(featuresYAML), 0644)
+	// No seed initialized -- err:pipeline -> exit 1 in human mode too
 	var code int
 	out := captureStderr(t, func() {
 		code = RunBdd([]string{"add", "my-feat"}, false)
@@ -675,7 +680,7 @@ func TestRunBddHumanModeError(t *testing.T) {
 func TestRunTestHumanModeSuccess(t *testing.T) {
 	dir := setupPipelineProject(t)
 	chdirTo(t, dir)
-	// Config sets runner: "echo ok" → exit 0, treated as 1 pass.
+	// Config sets runner: "echo ok" -> exit 0, treated as 1 pass.
 
 	out := captureStdout(t, func() {
 		code := RunTest([]string{"run"}, false)
@@ -697,7 +702,7 @@ func TestRunTestHumanModeError(t *testing.T) {
 	if err := os.MkdirAll(ptsdDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	// No testing.runner configured — err:config → exit 3
+	// No testing.runner configured -- err:config -> exit 3
 	configYAML := "project:\n  name: TestProject\n"
 	if err := os.WriteFile(filepath.Join(ptsdDir, "ptsd.yaml"), []byte(configYAML), 0644); err != nil {
 		t.Fatal(err)

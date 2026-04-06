@@ -42,6 +42,7 @@ func TestFeatureWithBDDButNoSeed(t *testing.T) {
 		writeFeaturesYAML(t, base, `- id: user-auth
   title: "User Auth"
   status: active
+  pipeline: full
 `)
 		createPRDAnchor(t, base, "user-auth")
 		createBDD(t, base, "user-auth")

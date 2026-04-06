@@ -13,6 +13,12 @@ func TestStoreHashesOnSync(t *testing.T) {
 	dir := t.TempDir()
 	setupFeatureFiles(t, dir, "user-auth", "seed", "bdd", "test")
 
+	// Map test file so SyncState can resolve it (polyglot: no hardcoded Go fallback)
+	testRelPath := filepath.Join("internal", "core", "user-auth_test.go")
+	if err := MapTestDirect(dir, "user-auth", testRelPath); err != nil {
+		t.Fatalf("MapTestDirect failed: %v", err)
+	}
+
 	err := SyncState(dir)
 	if err != nil {
 		t.Fatalf("SyncState failed: %v", err)
@@ -255,7 +261,7 @@ func TestProjectStatusPersistsComputedStages(t *testing.T) {
 		t.Fatalf("ProjectStatus: %v", err)
 	}
 
-	// Reload from disk — stage should be persisted
+	// Reload from disk -- stage should be persisted
 	state, err := LoadState(dir)
 	if err != nil {
 		t.Fatalf("LoadState: %v", err)

@@ -154,7 +154,7 @@ hooks:
 
 func TestRunConfig_Show_MissingConfig_Exit3(t *testing.T) {
 	dir := t.TempDir()
-	// No .ptsd/ directory — config load must fail with exit code 3.
+	// No .ptsd/ directory -- config load must fail with exit code 3.
 	chdir(t, dir)
 
 	out := captureStderr(t, func() {
@@ -162,7 +162,7 @@ func TestRunConfig_Show_MissingConfig_Exit3(t *testing.T) {
 	})
 	exitCode := RunConfig([]string{"show"}, true)
 
-	// config error — exit code 3
+	// config error -- exit code 3
 	if exitCode != 3 {
 		t.Errorf("expected exit code 3 when config is missing, got %d", exitCode)
 	}
@@ -178,7 +178,7 @@ func TestRunConfig_Show_DefaultValues(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Minimal config — defaults must be applied
+	// Minimal config -- defaults must be applied
 	minimalYAML := `project:
   name: "Minimal"
 `
@@ -199,8 +199,8 @@ func TestRunConfig_Show_DefaultValues(t *testing.T) {
 	if !strings.Contains(out, "hooks.pre_commit=true") {
 		t.Errorf("expected default 'hooks.pre_commit=true' in output, got: %q", out)
 	}
-	// Default patterns contain test pattern
-	if !strings.Contains(out, "_test.go") {
+	// Default patterns contain some test pattern
+	if !strings.Contains(out, "testing.patterns.files=") {
 		t.Errorf("expected default test pattern in output, got: %q", out)
 	}
 }

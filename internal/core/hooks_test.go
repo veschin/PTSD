@@ -67,12 +67,12 @@ func TestIMPLScopeTriggersFullValidation(t *testing.T) {
 
 	// Set up features.yaml with an active feature
 	ptsdDir := filepath.Join(dir, ".ptsd")
-	featuresContent := "- id: auth\n  title: Authentication\n  status: active\n"
+	featuresContent := "- id: auth\n  title: Authentication\n  status: active\n  pipeline: full\n"
 	if err := os.WriteFile(filepath.Join(ptsdDir, "features.yaml"), []byte(featuresContent), 0644); err != nil {
 		t.Fatalf("failed to write features.yaml: %v", err)
 	}
 
-	// Create BDD without seed — pipeline violation
+	// Create BDD without seed -- pipeline violation (full pipeline requires seed before bdd)
 	bddDir := filepath.Join(ptsdDir, "bdd")
 	if err := os.MkdirAll(bddDir, 0755); err != nil {
 		t.Fatalf("failed to create bdd dir: %v", err)
@@ -115,7 +115,7 @@ func TestIMPLScopePassesWhenPipelineClean(t *testing.T) {
 		t.Fatalf("failed to write features.yaml: %v", err)
 	}
 
-	// Create seed + BDD + a test file — pipeline is clean
+	// Create seed + BDD + a test file -- pipeline is clean
 	seedDir := filepath.Join(ptsdDir, "seeds", "auth")
 	if err := os.MkdirAll(seedDir, 0755); err != nil {
 		t.Fatalf("failed to create seed dir: %v", err)
