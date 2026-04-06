@@ -70,6 +70,9 @@ nav.scrolled { border-bottom-color: var(--border); box-shadow: 0 1px 4px rgba(0,
   width: 160px; z-index: 50;
   font-size: .88rem; line-height: 1.4;
   display: none;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
 }
 .toc a {
   display: block; padding: 7px 12px;
