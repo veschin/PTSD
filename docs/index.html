@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PTSD -- Structured AI Development Pipeline</title>
+  <meta name="description" content="CLI tool enforcing PRD -> Tests -> Implementation for AI-driven projects. No skipping. No orphans. No vibes.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== NAV ===== -->
+<nav id="nav">
+  <div class="container">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <span class="nav-logo-text">PTSD</span>
+        <span class="nav-badge">v2.0</span>
+      </a>
+      <div class="nav-links">
+        <a href="#how" class="nav-link" data-i18n="nav_overview">Overview</a>
+        <a href="#changelog" class="nav-link" data-i18n="nav_changelog">Changelog</a>
+        <a href="#quickstart" class="nav-link" data-i18n="nav_quickstart">Quick Start</a>
+        <div class="nav-locale">
+          <button class="locale-btn active" data-locale="en">EN</button>
+          <button class="locale-btn" data-locale="ru">RU</button>
+          <button class="locale-btn" data-locale="zh">中</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main class="locale-wrapper">
+
+  <!-- ===== HERO ===== -->
+  <section id="hero">
+    <div class="container">
+      <h1 class="hero-title reveal" data-i18n="hero_title">PTSD</h1>
+      <p class="hero-tagline reveal" data-i18n="hero_tagline">Structured AI Development Pipeline</p>
+      <p class="hero-desc reveal" data-i18n="hero_desc">CLI tool enforcing PRD -> Tests -> Implementation for AI-driven projects. No skipping. No orphans. No vibes.</p>
+
+      <div class="install-block reveal">
+        <span class="install-cmd">
+          <span class="cmd-keyword">go</span> install <span class="cmd-path">github.com/veschin/ptsd/cmd/ptsd</span><span class="cmd-flag">@latest</span>
+        </span>
+        <button class="copy-btn" id="copy-install" aria-label="Copy install command" title="Copy">
+          <i data-lucide="copy" width="16" height="16"></i>
+        </button>
+      </div>
+
+      <div class="hero-badges reveal">
+        <span class="badge" data-i18n="hero_badge1">Zero deps</span>
+        <span class="badge" data-i18n="hero_badge2">Single binary</span>
+        <span class="badge" data-i18n="hero_badge3">22 commands</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <section id="how">
+    <div class="container">
+      <div class="section-header">
+        <h2 data-i18n="how_title">How It Works</h2>
+      </div>
+      <div class="steps">
+        <div class="step reveal">
+          <div class="step-circle">1</div>
+          <div class="step-content">
+            <div class="step-title" data-i18n="how_step1_title">Context</div>
+            <div class="step-desc" data-i18n="how_step1_desc">Session starts -- pipeline state injected. AI sees what to do next.</div>
+          </div>
+        </div>
+        <div class="step reveal">
+          <div class="step-circle">2</div>
+          <div class="step-content">
+            <div class="step-title" data-i18n="how_step2_title">Gate</div>
+            <div class="step-desc" data-i18n="how_step2_desc">Every file write is checked. Wrong stage? Blocked.</div>
+          </div>
+        </div>
+        <div class="step reveal">
+          <div class="step-circle">3</div>
+          <div class="step-content">
+            <div class="step-title" data-i18n="how_step3_title">Track</div>
+            <div class="step-desc" data-i18n="how_step3_desc">Artifacts created -- stage advances automatically.</div>
+          </div>
+        </div>
+        <div class="step reveal">
+          <div class="step-circle">4</div>
+          <div class="step-content">
+            <div class="step-title" data-i18n="how_step4_title">Validate</div>
+            <div class="step-desc" data-i18n="how_step4_desc">Commit hook runs full check. Nothing slips through.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PIPELINE PROFILES ===== -->
+  <section id="profiles">
+    <div class="container">
+      <div class="section-header">
+        <h2 data-i18n="profiles_title">Pipeline Profiles</h2>
+        <p data-i18n="profiles_desc">Not every feature needs five stages. Choose what fits.</p>
+      </div>
+
+      <div class="profiles-grid">
+        <!-- full -->
+        <div class="profile-row reveal">
+          <span class="profile-name" data-i18n="profile_full_name">full</span>
+          <div class="profile-stages">
+            <span class="stage-pill prd">PRD</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill seed">Seed</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill bdd">BDD</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill tests">Tests</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill impl">Impl</span>
+          </div>
+          <span class="profile-desc" data-i18n="profile_full_desc">Data-heavy features. Golden seed data grounds BDD scenarios.</span>
+        </div>
+
+        <!-- standard -->
+        <div class="profile-row reveal">
+          <span class="profile-name" data-i18n="profile_std_name">standard</span>
+          <div class="profile-stages">
+            <span class="stage-pill prd">PRD</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill skipped">Seed</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill bdd">BDD</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill tests">Tests</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill impl">Impl</span>
+          </div>
+          <span class="profile-desc" data-i18n="profile_std_desc">Default. Most features. BDD from PRD, skip seed ceremony.</span>
+        </div>
+
+        <!-- lite -->
+        <div class="profile-row reveal">
+          <span class="profile-name" data-i18n="profile_lite_name">lite</span>
+          <div class="profile-stages">
+            <span class="stage-pill prd">PRD</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill skipped">Seed</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill skipped">BDD</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill tests">Tests</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill impl">Impl</span>
+          </div>
+          <span class="profile-desc" data-i18n="profile_lite_desc">Simple utilities. Tests directly from PRD. Ship fast.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== WHAT'S NEW IN V2 ===== -->
+  <section id="features">
+    <div class="container">
+      <div class="section-header">
+        <h2 data-i18n="features_title">What's New in v2</h2>
+      </div>
+
+      <div class="cards-grid">
+        <div class="feature-card reveal">
+          <div class="card-icon">
+            <i data-lucide="layers" width="20" height="20"></i>
+          </div>
+          <h3 data-i18n="feat1_title">Pipeline Profiles</h3>
+          <p data-i18n="feat1_desc">Three profiles per feature. Full, standard, lite. Skip what you don't need.</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="card-icon">
+            <i data-lucide="globe" width="20" height="20"></i>
+          </div>
+          <h3 data-i18n="feat2_title">Polyglot</h3>
+          <p data-i18n="feat2_desc">Go, TypeScript, Python, Rust, Ruby, Java, C#. Auto-detected.</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="card-icon">
+            <i data-lucide="terminal" width="20" height="20"></i>
+          </div>
+          <h3 data-i18n="feat3_title">Tool Adapters</h3>
+          <p data-i18n="feat3_desc">Claude Code, OpenCode, Cursor. One pipeline, any tool.</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="card-icon">
+            <i data-lucide="git-branch" width="20" height="20"></i>
+          </div>
+          <h3 data-i18n="feat4_title">Smart Adopt</h3>
+          <p data-i18n="feat4_desc">Bootstrap existing projects. Features auto-discovered from tests.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CHANGELOG ===== -->
+  <section id="changelog">
+    <div class="container">
+      <div class="section-header">
+        <h2 data-i18n="changelog_title">Changelog</h2>
+      </div>
+
+      <!-- v2.0 -->
+      <div class="changelog-version reveal">
+        <span class="version-tag">v2.0</span>
+        <span class="version-label" data-i18n="changelog_v2">v2.0</span>
+      </div>
+
+      <div class="reveal">
+        <table class="changelog-table">
+          <thead>
+            <tr>
+              <th data-i18n="cl_th_aspect">Aspect</th>
+              <th>v1.x</th>
+              <th>v2.0</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-i18n="cl_r1_aspect">Pipeline</td>
+              <td data-i18n="cl_r1_v1">5 stages, mandatory</td>
+              <td data-i18n="cl_r1_v2">3 profiles: full/standard/lite</td>
+            </tr>
+            <tr>
+              <td data-i18n="cl_r2_aspect">Tools</td>
+              <td data-i18n="cl_r2_v1">Claude Code only</td>
+              <td data-i18n="cl_r2_v2">Claude + OpenCode + generic</td>
+            </tr>
+            <tr>
+              <td data-i18n="cl_r3_aspect">Languages</td>
+              <td data-i18n="cl_r3_v1">Go-first</td>
+              <td data-i18n="cl_r3_v2">Go, TS, JS, Python, Rust, Ruby, Java, C#</td>
+            </tr>
+            <tr>
+              <td data-i18n="cl_r4_aspect">Context hook</td>
+              <td data-i18n="cl_r4_v1">2x per message</td>
+              <td data-i18n="cl_r4_v2">1x per session</td>
+            </tr>
+            <tr>
+              <td data-i18n="cl_r5_aspect">adopt</td>
+              <td data-i18n="cl_r5_v1">BDD tags only</td>
+              <td data-i18n="cl_r5_v2">Test files + deferred + runner detect</td>
+            </tr>
+            <tr>
+              <td data-i18n="cl_r6_aspect">test map</td>
+              <td data-i18n="cl_r6_v1">BDD file required</td>
+              <td data-i18n="cl_r6_v2">BDD or --feature (lite)</td>
+            </tr>
+            <tr>
+              <td data-i18n="cl_r7_aspect">Migration</td>
+              <td data-i18n="cl_r7_v1">none</td>
+              <td data-i18n="cl_r7_v2"><code>ptsd migrate</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- v1.x -->
+      <div class="changelog-v1 reveal">
+        <h3>
+          <span class="version-tag" data-i18n="changelog_v1">v1.x</span>
+        </h3>
+        <p class="changelog-v1-text" data-i18n="changelog_v1_desc">Original release. Fixed 5-stage pipeline (PRD -> Seed -> BDD -> Tests -> Impl), Claude Code integration, Go-centric test detection. Validated across 4 benchmark rounds with zero bypass attempts by R4.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== QUICK START ===== -->
+  <section id="quickstart">
+    <div class="container">
+      <div class="section-header">
+        <h2 data-i18n="quickstart_title">Quick Start</h2>
+      </div>
+
+      <div class="code-block reveal">
+        <pre><span class="cb-comment"># install</span>
+<span class="cb-keyword">go</span> install <span class="cb-path">github.com/veschin/ptsd/cmd/ptsd</span><span class="cb-flag">@latest</span>
+
+<span class="cb-comment"># initialize in your project</span>
+<span class="cb-keyword">cd</span> my-project &amp;&amp; <span class="cb-keyword">git</span> init
+<span class="cb-keyword">ptsd</span> init <span class="cb-flag">--tool</span> <span class="cb-str">claude</span>
+
+<span class="cb-comment"># add your first feature</span>
+<span class="cb-keyword">ptsd</span> feature add auth <span class="cb-str">"Auth"</span> <span class="cb-flag">--pipeline</span> <span class="cb-str">standard</span></pre>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <span class="footer-logo">PTSD</span>
+        <div class="footer-links">
+          <a href="https://github.com/veschin/ptsd" target="_blank" rel="noopener">GitHub</a>
+          <span class="footer-sep">&middot;</span>
+          <a href="https://github.com/veschin/ptsd/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+        </div>
+      </div>
+      <span class="footer-tagline" data-i18n="footer_tagline">Made for AI-driven development</span>
+    </div>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
