@@ -209,8 +209,13 @@ next: config stage=prd action=write-tests pipeline=lite</pre>
       <p class="sec-sub">13 instruction sets, one per pipeline action. Loaded automatically during the relevant stage. The AI follows a checklist, not intuition.</p>
 
       <div class="skill-browser">
-        <div class="skill-tabs" id="skill-tabs"></div>
-        <pre class="code light skill-view" id="skill-view">Select a skill above to view its contents.</pre>
+        <div class="skill-nav">
+          <button class="skill-arr" id="skill-prev">&larr;</button>
+          <span class="skill-current" id="skill-label">write-prd</span>
+          <button class="skill-arr" id="skill-next">&rarr;</button>
+        </div>
+        <pre class="code light skill-view" id="skill-view"></pre>
+        <div class="skill-dots" id="skill-dots"></div>
       </div>
     </div>
   </section>
@@ -258,19 +263,19 @@ next: config stage=prd action=write-tests pipeline=lite</pre>
         <thead><tr><th></th><th>No PTSD</th><th>v1.x</th><th>v2.0</th></tr></thead>
         <tbody>
           <tr>
-            <td class="cmp-l">Pipeline</td>
+            <td class="cmp-l"><a href="#profiles">Pipeline</a></td>
             <td class="cmp-none">None</td>
             <td>5 stages, mandatory</td>
             <td class="cmp-hi">3 profiles</td>
           </tr>
           <tr>
-            <td class="cmp-l">Enforcement</td>
+            <td class="cmp-l"><a href="#enforcement">Enforcement</a></td>
             <td class="cmp-none">Hope</td>
             <td>Claude Code hooks</td>
             <td class="cmp-hi">Any tool</td>
           </tr>
           <tr>
-            <td class="cmp-l">Languages</td>
+            <td class="cmp-l"><a href="#integration">Languages</a></td>
             <td class="cmp-none">N/A</td>
             <td>Go</td>
             <td class="cmp-hi">8 languages</td>
@@ -288,7 +293,7 @@ next: config stage=prd action=write-tests pipeline=lite</pre>
             <td class="cmp-hi"><code>ptsd adopt</code></td>
           </tr>
           <tr>
-            <td class="cmp-l">Test mapping</td>
+            <td class="cmp-l"><a href="#pipeline">Test mapping</a></td>
             <td class="cmp-none">N/A</td>
             <td>BDD required</td>
             <td class="cmp-hi">BDD or direct</td>

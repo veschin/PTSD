@@ -178,24 +178,50 @@ pre.code.sm { font-size: .72rem; padding: 12px 16px; }
 .ef-note { font-size: .82rem; color: var(--cd-c); font-style: italic; border-top: 1px solid rgba(255,255,255,.06); padding-top: 20px; }
 
 /* ===== SKILLS ===== */
-.skill-browser { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-.skill-tabs {
-  display: flex; flex-wrap: wrap; gap: 0;
-  padding: 8px; background: var(--bg-alt);
-  border-bottom: 1px solid var(--border);
+.skill-browser { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.skill-nav {
+  display: flex; align-items: center; justify-content: center;
+  gap: 20px; padding: 12px 16px;
+  background: var(--bg-alt); border-bottom: 1px solid var(--border);
 }
-.skill-tab {
-  font-family: 'JetBrains Mono', monospace; font-size: .7rem;
-  padding: 4px 10px; border-radius: 3px; cursor: pointer;
-  color: var(--text-muted); border: none; background: none;
-  transition: background .15s, color .15s;
+.skill-arr {
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  width: 36px; height: 36px; cursor: pointer;
+  font-size: 1rem; color: var(--text-mid); display: flex; align-items: center; justify-content: center;
+  transition: background .15s, border-color .15s;
+  font-family: inherit;
 }
-.skill-tab:hover { background: var(--border); color: var(--text); }
-.skill-tab.active { background: var(--accent-dim); color: #7B8CDE; font-weight: 500; }
+.skill-arr:hover { background: var(--border); }
+.skill-current {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .9rem; font-weight: 600; color: var(--accent);
+  min-width: 140px; text-align: center;
+}
 .skill-view {
-  min-height: 200px; margin: 0; border: none; border-radius: 0;
-  font-size: .76rem !important; padding: 20px !important;
+  min-height: 240px; margin: 0; border: none; border-radius: 0;
+  font-size: .78rem !important; padding: 20px 24px !important; line-height: 1.65 !important;
 }
+.skill-dots {
+  display: flex; justify-content: center; gap: 6px;
+  padding: 10px; background: var(--bg-alt); border-top: 1px solid var(--border);
+}
+.skill-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border); border: none; cursor: pointer;
+  transition: background .15s;
+  padding: 0;
+}
+.skill-dot.active { background: var(--accent); }
+/* skill syntax highlight (nibelung light) */
+.skill-view code { font-size: .76rem; background: rgba(0,0,0,.04); padding: 1px 4px; border-radius: 2px; }
+.cl-k { color: #7B8CDE; } /* headings, blockquotes */
+.cl-s { color: #495057; font-weight: 500; } /* numbered instructions */
+.cl-t { color: #8BA3D7; } /* checklist items */
+.cl-e { color: #E08E8E; } /* common mistakes */
+.cl-c { color: #ADB5BD; } /* frontmatter */
+/* table links */
+.cmp-l a { color: var(--cd-fg); text-decoration: underline; text-decoration-color: rgba(255,255,255,.2); text-underline-offset: 2px; }
+.cmp-l a:hover { text-decoration-color: var(--accent); color: #F8F9FA; }
 
 /* ===== INTEGRATION TABLE ===== */
 .integ-table { width: 100%; border-collapse: collapse; font-size: .85rem; }

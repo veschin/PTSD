@@ -69,12 +69,12 @@ description: Use when bootstrapping an existing project into PTSD pipeline
 4. For each feature, assess current stage: which pipeline steps are complete.
 5. Create seed data from existing tests or documentation.
 6. Write BDD scenarios to capture existing behavior.
-7. Do not rewrite working code — document and track it.
+7. Do not rewrite working code -- document and track it.
 
 ## Common Mistakes
 
 - Setting all features to the same stage instead of assessing each individually.
-- Rewriting working code to fit ptsd patterns — adopt tracks what exists.
+- Rewriting working code to fit ptsd patterns -- adopt tracks what exists.
 - Forgetting to create seed data from existing test fixtures.
 - Not checking for existing test files when setting the tests stage.
 - Skipping BDD scenarios for features that already have passing tests.
@@ -91,15 +91,15 @@ description: Use when adding tasks to tasks.yaml
 3. Priority: A (urgent), B (normal), C (low).
 4. Title must be a clear action: "Implement X", "Fix Y", "Add Z".
 5. Add a checklist of subtasks if the task has multiple steps.
-6. Status: TODO → IN-PROGRESS → DONE.
+6. Status: TODO -> IN-PROGRESS -> DONE.
 
 ## Common Mistakes
 
-- Creating tasks without a feature link — every task must belong to a feature.
-- Duplicate task IDs — always check the last existing ID before creating.
+- Creating tasks without a feature link -- every task must belong to a feature.
+- Duplicate task IDs -- always check the last existing ID before creating.
 - Vague titles like "Update code" instead of specific "Add validation to seed init".
-- Missing priority field — defaults are ambiguous, always set explicitly.
-- Creating tasks for work already done — check review-status.yaml first.
+- Missing priority field -- defaults are ambiguous, always set explicitly.
+- Creating tasks for work already done -- check review-status.yaml first.
 `,
   "review-bdd": `---
 name: review-bdd
@@ -148,11 +148,11 @@ Output: score and list of specific issues found.
 
 ## Common Mistakes
 
-- Not running the full test suite — a passing subset does not prove correctness.
+- Not running the full test suite -- a passing subset does not prove correctness.
 - Accepting code that adds features beyond the task scope.
 - Missing err:<category> prefix on error returns.
 - Domain logic placed in cli/ or render/ instead of core/.
-- Premature abstractions — extracting helpers for code used only once.
+- Premature abstractions -- extracting helpers for code used only once.
 `,
   "review-prd": `---
 name: review-prd
@@ -177,7 +177,7 @@ Output: score and list of specific issues found.
 
 - Accepting vague acceptance criteria ("works correctly") without pushing for specifics.
 - Not verifying that edge cases cover empty, missing, and invalid inputs.
-- Skipping non-goals check — missing non-goals cause scope creep later.
+- Skipping non-goals check -- missing non-goals cause scope creep later.
 - Giving a passing score when the feature anchor is missing.
 `,
   "review-seed": `---
@@ -202,7 +202,7 @@ Output: score and list of specific issues found.
 
 - Not checking that every file listed in seed.yaml actually exists on disk.
 - Accepting placeholder data ("test", "example") as realistic.
-- Missing boundary value data — 0, max int, empty string, single element.
+- Missing boundary value data -- 0, max int, empty string, single element.
 - Not verifying the data format matches what the implementation will parse.
 `,
   "review-tests": `---
@@ -347,7 +347,7 @@ description: Use when creating or updating a PRD section for a feature
 1. Start with a one-line summary of the feature purpose.
 2. Define the problem being solved and who it affects.
 3. List acceptance criteria as testable statements.
-4. Define non-goals explicitly — what is out of scope.
+4. Define non-goals explicitly -- what is out of scope.
 5. Cover edge cases: empty input, missing files, invalid state.
 6. Add a feature anchor comment: <!-- feature:<id> -->
 7. Keep language precise. No ambiguity.
@@ -355,10 +355,10 @@ description: Use when creating or updating a PRD section for a feature
 ## Common Mistakes
 
 - Writing acceptance criteria that cannot be tested ("it should be fast", "user-friendly").
-- Forgetting non-goals — every PRD must state what is NOT in scope.
+- Forgetting non-goals -- every PRD must state what is NOT in scope.
 - Missing edge cases for empty/missing/invalid inputs.
 - Using vague language: "should handle errors" instead of "returns err:validation when input is empty".
-- Omitting the feature anchor comment — without it, ptsd cannot link the PRD section to the feature.
+- Omitting the feature anchor comment -- without it, ptsd cannot link the PRD section to the feature.
 `,
   "write-seed": `---
 name: write-seed
@@ -410,30 +410,64 @@ description: Use when writing tests from BDD scenarios for a feature
 - Forgetting to test error message prefixes (err:validation, err:io, etc.).
 `
 };
-function initSkills() {
-  var tabs = document.getElementById("skill-tabs");
-  var view = document.getElementById("skill-view");
-  if (!tabs || !view) return;
+var skillIndex = 0;
+var skillNames = [];
 
-  var names = Object.keys(SKILL_DATA);
-  names.forEach(function(name) {
-    var btn = document.createElement("button");
-    btn.className = "skill-tab";
-    btn.textContent = name;
-    btn.addEventListener("click", function() {
-      document.querySelectorAll(".skill-tab").forEach(function(t) {
-        t.classList.toggle("active", t.textContent === name);
-      });
-      view.textContent = SKILL_DATA[name] || "Not found";
-    });
-    tabs.appendChild(btn);
+function highlightSkill(raw) {
+  // colorize markdown-like syntax with nibelung light palette
+  return raw
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^(#{1,3} .+)$/gm, '<span class="cl-k">$1</span>')
+    .replace(/^(- \[[ x]\].+)$/gm, '<span class="cl-t">$1</span>')
+    .replace(/^(- .+)$/gm, function(m) {
+      // errors in red if under "Common Mistakes"
+      return '<span class="cl-e">' + m + '</span>';
+    })
+    .replace(/^(\d+\..+)$/gm, '<span class="cl-s">$1</span>')
+    .replace(/^(---[\s\S]*?---)$/m, function(m) {
+      return '<span class="cl-c">' + m + '</span>';
+    })
+    .replace(/^(&gt;.+)$/gm, '<span class="cl-k">$1</span>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+function showSkill(i) {
+  var view = document.getElementById("skill-view");
+  var label = document.getElementById("skill-label");
+  var dots = document.querySelectorAll(".skill-dot");
+  if (!view || !skillNames[i]) return;
+
+  skillIndex = i;
+  label.textContent = skillNames[i];
+  view.innerHTML = highlightSkill(SKILL_DATA[skillNames[i]]);
+  dots.forEach(function(d, j) { d.classList.toggle("active", j === i); });
+}
+
+function initSkills() {
+  var view = document.getElementById("skill-view");
+  var dotsEl = document.getElementById("skill-dots");
+  var prev = document.getElementById("skill-prev");
+  var next = document.getElementById("skill-next");
+  if (!view || !dotsEl) return;
+
+  skillNames = Object.keys(SKILL_DATA);
+
+  // build dots
+  skillNames.forEach(function(_, i) {
+    var dot = document.createElement("button");
+    dot.className = "skill-dot";
+    dot.addEventListener("click", function() { showSkill(i); });
+    dotsEl.appendChild(dot);
   });
 
-  // auto-select first
-  if (names.length > 0) {
-    tabs.children[0].classList.add("active");
-    view.textContent = SKILL_DATA[names[0]];
-  }
+  prev.addEventListener("click", function() {
+    showSkill((skillIndex - 1 + skillNames.length) % skillNames.length);
+  });
+  next.addEventListener("click", function() {
+    showSkill((skillIndex + 1) % skillNames.length);
+  });
+
+  showSkill(0);
 }
 
 // ===== Init =====
