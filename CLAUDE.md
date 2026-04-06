@@ -1,293 +1,160 @@
-# CLAUDE.md
+# CLAUDE.md -- Maintainer System Prompt
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+You are maintaining PTSD (PRD-Test-Seed Dashboard) -- a Go CLI that enforces structured AI-driven development. Single binary, zero deps (stdlib only, no `go.sum`). This project dogfoods itself.
 
-## What Is This
+## Hard Constraints
 
-PTSD (PRD-Test-Seed Dashboard) — CLI tool enforcing structured AI development.
-Go, single binary, zero third-party dependencies (stdlib only, no `go.sum`).
+- **stdlib only.** No third-party imports. No `go.sum`. No exceptions.
+- **No YAML library.** All YAML is hand-parsed: `strings.Split`/`HasPrefix`/`TrimPrefix`. Every new YAML field = manual parser update.
+- **No mocks in tests.** Real files, real CLI, temp directories. `setupProjectWithFeatures(t, "id:status")` is the central helper.
+- **Error format: `err:<category> <message>`.** Categories: validation, pipeline, user, config, io, test. `coreError()` in `cli/helpers.go` routes to exit codes 1-5.
+- **Commit format: `[SCOPE] type: message`.** Scopes: PRD, SEED, BDD, TEST, IMPL, TASK, STATUS.
 
-**This project dogfoods itself.** All PTSD practices apply here: features, pipeline, seeds, BDD, reviews.
-
-## Build & Test Commands
-
-```bash
-go build ./cmd/ptsd/...           # build binary
-go test ./...                     # run all tests
-go test ./internal/core/...       # run core package tests
-go test -run TestValidate ./internal/core/  # run a single test
-go test -v -run TestName ./path/  # verbose single test
-```
-
-No Makefile, no linter config. Standard Go tooling only.
-
-## Release Pipeline
-
-Every push to main MUST be tagged and pushed:
+## Build & Test
 
 ```bash
-go test ./...                    # all tests pass
-go build ./cmd/ptsd/...          # builds clean
-git commit && git push           # push code
-git tag v1.X.Y                   # tag the release
-git push origin v1.X.Y           # push tag (triggers Go proxy)
+go build ./cmd/ptsd/...      # must always pass
+go test ./...                # must always pass
+go test -run TestName ./path # single test
 ```
-
-- Bump **minor** for features (`v1.2.0` → `v1.3.0`), **patch** for fixes (`v1.3.0` → `v1.3.1`)
-- `ptsd version` reads from `runtime/debug.ReadBuildInfo()` — works automatically with `go install`
-- **NEVER delete/move a pushed tag** — Go proxy caches are immutable, checksum mismatch = permanent breakage
-- If a tag is burned: leave it, create next patch version
-- `@latest` on Go proxy caches ~30 min; use explicit `@vX.Y.Z` for immediate install
-- Update pinned version in README.md when tagging
 
 ## Architecture
 
 ```
-cmd/ptsd/main.go → internal/cli/* → internal/core/* → internal/yaml/*
-                                   → internal/render/*
+cmd/ptsd/main.go      flat switch dispatcher, no cobra/flag
+  -> internal/cli/*    args -> core -> render, func RunX(args, agentMode) int
+  -> internal/core/*   domain logic, zero TUI imports
+  -> internal/render/* AgentRenderer only (HumanRenderer not yet built)
 ```
 
-- `core/` — domain logic, zero TUI imports. All YAML parsing is inline here (line-by-line `strings.Split`/`HasPrefix`/`TrimPrefix`, no third-party parser)
-- `render/` — output formatting. Only `AgentRenderer` exists; HumanRenderer (Bubbletea TUI) is not yet implemented
-- `cli/` — glue: args → core → render. Signature `func RunX(args []string, agentMode bool) int`. Most commands get their own file, but `pipeline.go` groups `prd`/`seed`/`bdd`/`test` and `init.go` groups `init`/`adopt`
-- `yaml/` — declared as leaf package but currently empty; all parsing lives in `core/`
-- `core/templates.go` — uses `//go:embed templates/*` to ship skills, hook scripts, `settings.json` template inside the binary
+### Key Files -- Know These
 
-### CLI Command Registration
+| File | What It Does | When You Touch It |
+|------|-------------|-------------------|
+| `core/profiles.go` | Pipeline profiles: full/standard/lite. `StageRequired()`, `NextStage()`, `NextAction()`, `ResolveFeaturePipeline()` | Adding/changing pipeline stages |
+| `core/registry.go` | `Feature{ID,Title,Status,Pipeline}`, CRUD on `features.yaml`, `loadFeatures()`/`saveFeatures()` | Changing feature fields |
+| `core/gatecheck.go` | `GateCheck()` -- blocks invalid AI writes. Profile-aware. `alwaysAllowed` map, `isImplFile()` | Adding allowed file paths, changing gates |
+| `core/context.go` | `BuildContext()` -- emits next/blocked lines with pipeline. Drives AI behavior at session start | Changing what AI sees |
+| `core/autotrack.go` | `AutoTrack()` -- PostToolUse hook, advances stage. `stageOrder` map lives here | Changing stage advancement logic |
+| `core/pipeline.go` | `Validate()` -- pre-commit checks. Profile-aware. `scanForMocks()` | Adding validation rules |
+| `core/testdetect.go` | `IsTestFile()`, `StripTestSuffix()`, `DefaultTestPatterns()`. **Single source of truth** for test patterns across all languages | Adding language support |
+| `core/init.go` | `InitProject()`, `ReInitProject()`, `ReInitProjectWithTool()`. Tool adapters: claude/opencode/generic. `detectTool()`, `detectTestRunner()` | Adding tool adapters, changing init |
+| `core/state.go` | `State`/`FeatureState`, hashes, scores, `CheckRegressions()`, `ComputeStageFromArtifacts()` | Changing state tracking |
+| `core/review.go` | `RecordReview()`, `CheckReviewGate()`. Validates stage against feature's pipeline profile | Changing review logic |
+| `core/templates.go` | `//go:embed templates/*`. `renderTemplate()`, `readTemplate()`. All templates auto-embedded | Adding templates |
+| `core/migrate.go` | `MigrateProject()` -- adds pipeline/tool fields to old projects | Changing config format |
 
-`main.go` is a flat `switch cmd` dispatcher. No cobra, no flag package. Arg parsing is manual loop-over-args. To add a new command:
-1. New `case "cmd-name":` in `main.go`
-2. New `cli/cmd-name.go` with `func RunCmdName(args []string, agentMode bool) int`
+### Adding a New Command
 
-Go module: `github.com/veschin/ptsd`. Internal imports use `github.com/veschin/ptsd/internal/...`
+1. `case "cmd":` in `cmd/ptsd/main.go`
+2. `func RunCmd(args []string, agentMode bool) int` in `cli/cmd.go`
+3. Core logic in `core/cmd.go`
+4. Add to `cli/help.go`
 
-### Error Protocol
+### Adding a New Tool Adapter
 
-Errors flow as `fmt.Errorf("err:category message")`. The `coreError()` helper in `cli/helpers.go` parses this prefix to route to exit codes:
-- `err:validation` / `err:pipeline` → exit 1
-- `err:user` → exit 2
-- `err:config` → exit 3
-- `err:io` → exit 4
-- `err:test` → exit 5
+1. Generator function in `core/init.go` (e.g., `generateCursorConfig()`)
+2. Template files in `core/templates/<tool>/`
+3. Wire into both `switch tool` blocks in `InitProject` and `ReInitProjectWithTool`
+4. Add to `detectTool()` auto-detection
 
-### Hook Auto-Wiring
+## Pipeline Profiles -- The Core Concept
 
-`ptsd init` generates `.claude/hooks/*.sh` scripts and `.claude/settings.json` that wires them as Claude Code hooks:
-- `SessionStart` + `UserPromptSubmit` → `ptsd-context.sh` → `ptsd context --agent` (injects pipeline state)
-- `PreToolUse` (Edit|Write) → `ptsd-gate.sh` → `ptsd hooks pre-tool-use` → `GateCheck()` (blocks pipeline-violating writes)
-- `PostToolUse` (Edit|Write) → `ptsd-track.sh` → `ptsd hooks post-tool-use` → `AutoTrack()` (auto-advances feature stage)
+Every feature has a pipeline profile that determines required stages:
 
-Hooks read Claude Code's JSON from stdin, extract `file_path` via string search (no JSON decoder), return exit 2 to block or 0 to allow.
+| Profile | Stages | Default |
+|---------|--------|---------|
+| `full` | PRD -> Seed -> BDD -> Tests -> Impl | No |
+| `standard` | PRD -> BDD -> Tests -> Impl | **Yes** |
+| `lite` | PRD -> Tests -> Impl | No |
 
-`ptsd init` also generates git hooks: `pre-commit` runs `ptsd validate`, `commit-msg` runs `ptsd hooks validate-commit`.
+**Profile drives EVERYTHING:** gates, context output, validation, review, autotrack, stage computation. When you add logic that checks seed/bdd/test prerequisites, it MUST call `StageRequired(pipeline, stage)` or it will break non-full pipelines.
 
-Re-running `ptsd init` is safe (idempotent) — regenerates hooks/skills/CLAUDE.md section without touching data files.
+`Feature.Pipeline` field in `registry.go`. Empty = config default (`ptsd.yaml` -> `pipeline.default`). Config default empty = `"standard"`.
 
-### Key Domain Types
+## Tool Adapters
 
-- `core/registry.go` — `Feature` struct, CRUD on `.ptsd/features.yaml`
-- `core/state.go` — `State`/`FeatureState` with hashes, scores, test mappings; `CheckRegressions()` compares SHA256 hashes (PRD changes downgrade stage; seed/BDD/test changes warn only)
-- `core/pipeline.go` — `Validate()` orchestrates all checks; `ClassifyFile()` maps paths to scopes
-- `core/context.go` — `BuildContext()` combines features + review-status + tasks → emits `next`/`blocked`/`done`/`task` lines
-- `core/review.go` — `ReviewStatusEntry`, `RecordReview()`, `CheckReviewGate()`
+`ptsd init --tool <name>` generates tool-specific AI integration:
 
-### Feature ID as Canonical Link
+| Tool | What's Generated | Enforcement |
+|------|-----------------|-------------|
+| `claude` | `.claude/settings.json` hooks, `.claude/skills/*/SKILL.md`, `CLAUDE.md` | Full: gate, track, context |
+| `opencode` | `.opencode/plugins/ptsd.ts`, `.opencode/commands/*.md`, `AGENTS.md` | Full: gate, track, context |
+| `generic` | `AGENTS.md` only | Advisory only (git hooks still enforce) |
 
-Everything resolves by feature ID: test files map via `matchFeatureID()` (exact match first, then longest substring match), BDD files are `<id>.feature`, seeds are `seeds/<id>/`, PRD anchors are `<!-- feature:<id> -->`.
+Auto-detection: `.claude/` exists -> claude, `.opencode/` exists -> opencode, else -> claude default.
 
-`planned` and `deferred` features are excluded from all pipeline checks.
+`ptsd init` on existing project = reinit: regenerates hooks/skills/instructions, preserves data. `ReInitProjectWithTool(dir, tool)` accepts explicit tool override for switching tools.
+
+## Hooks Architecture
+
+**Claude Code**: shell scripts in `.claude/hooks/`, wired via `.claude/settings.json`:
+- `SessionStart` -> `ptsd context --agent` (context injection, runs ONCE per session)
+- `PreToolUse` (Edit|Write) -> `ptsd gate-check` (blocks invalid writes)
+- `PostToolUse` (Edit|Write) -> `ptsd auto-track` (advances stage)
+
+**OpenCode**: TypeScript plugin in `.opencode/plugins/ptsd.ts`:
+- `session.start` -> context injection
+- `tool.execute.before` -> gate check
+- `tool.execute.after` -> auto-track
+
+**Git hooks** (all tools): `pre-commit` -> `ptsd validate`, `commit-msg` -> scope validation.
+
+Hook scripts use `{{.Bin}}` template -- renders to ptsd binary path at init time.
+
+## Polyglot Test Detection
+
+`core/testdetect.go` is the **single source of truth**. All test file checks use `IsTestFile()` -- never inline suffix checks.
+
+Supported: `_test.go`, `.test.ts`, `.test.js`, `.test.tsx`, `.test.jsx`, `.spec.ts`, `.spec.js`, `_test.py`, `test_*.py`, `_spec.rb`, `_test.rs`, `Test.java`, `Tests.cs`.
+
+`DefaultTestPatterns(runner)` returns appropriate globs per detected runner. `config.go:applyDefaults` uses this when patterns are empty.
+
+**Trap:** If you add a new test pattern to `knownTestSuffixes`, ALL consumers automatically pick it up (gatecheck, autotrack, pipeline, hooks, adopt). But `DefaultTestPatterns()` also needs updating for the corresponding runner.
 
 ## Testing Patterns
 
-Tests use real files, real CLI, temp directories. No mocks for internal code.
-
-**Central test helper** (`internal/core/test_helper_test.go`):
 ```go
-func setupProjectWithFeatures(t *testing.T, features ...string) string
-// Creates temp dir with full .ptsd/ structure. Features are "id:status" strings.
+// Central helper -- creates temp dir with .ptsd/ structure
+dir := setupProjectWithFeatures(t, "auth:in-progress", "config:planned")
+
+// Integration tests -- build real binary, run in temp dir
+cmd := exec.Command(bin, "validate", "--agent")
+cmd.Dir = dir
 ```
 
-**Integration tests** (`cmd/ptsd/main_test.go`): build real binary via `exec.Command("go", "build", "-o", bin, ".")`, run in temp project dir, assert on stdout/stderr/exit codes.
+`assertHasError(t, errors, feature, category, contains)` -- searches error slice.
 
-**Assertion helper**: `assertHasError(t, errors, feature, category, contains)` — searches error slice for matching feature+category+substring.
+**Critical:** When testing profile-dependent behavior, set `pipeline: full` in features.yaml explicitly. Default is `standard` which skips seed/bdd checks.
 
-## Project Structure
+## State Tracking
 
-```
-.ptsd/                    # all ptsd artifacts (git-tracked)
-  ptsd.yaml               # config
-  features.yaml           # feature registry (source of truth)
-  state.yaml              # hashes, scores, test results
-  review-status.yaml      # per-feature review verdicts and issues
-  tasks.yaml              # tasks
-  issues.yaml             # common issues registry
-  docs/PRD.md             # product requirements
-  seeds/<id>/             # golden seed data per feature
-  bdd/<id>.feature        # Gherkin scenarios per feature
-  skills/                 # pipeline skills for every stage
-```
+`state.yaml` stores per-feature: stage, hashes (SHA256 of PRD/seed/bdd/test files), scores, test mappings.
 
-## Pipeline (strict order per feature)
+Test mappings: `<bdd-file>::<test-file>` or `feature:<id>::<test-file>` (lite pipeline, no BDD).
 
-```
-PRD → Seed → BDD → Tests → Implementation
+`CheckRegressions()` compares stored vs current hashes. PRD change = stage downgrade. Seed/BDD change = warning only.
+
+## Release
+
+```bash
+go test ./... && go build ./cmd/ptsd/...
+git tag vX.Y.Z && git push origin vX.Y.Z
 ```
 
-Every artifact links to a feature. No orphan files. No skipping steps.
+- **NEVER delete/move a pushed tag** -- Go proxy caches are immutable
+- Minor bump for features, patch for fixes
+- Update pinned version in README.md
 
-### Pipeline Gates (enforced)
+## Landmines
 
-- No BDD without seed (`ptsd bdd add` refuses)
-- No test mapping without BDD (`ptsd test map` refuses)
-- No impl tasks without tests
-- No `implemented` status unless all tests pass
-- `ptsd validate` blocks commit on any violation
-
-### Review Gate
-
-Each stage requires review with score 0-10. Score < `review.min_score` (default 7) = redo.
-Review stored in `.ptsd/state.yaml`. Review status in `.ptsd/review-status.yaml`.
-When `review.auto_redo: true` and score < min, a redo task is automatically appended to `tasks.yaml`.
-
-## Rules
-
-1. **No mocks.** Tests prove real behavior. Mock only external integrations.
-2. **No garbage files.** Every file has a purpose and a feature link.
-3. **No hiding errors.** If something fails, explain why. Never suppress.
-4. **No over-engineering.** Minimum code for current task. No premature abstractions.
-5. **Commit format:** `[SCOPE] type: message`. Scopes: PRD, SEED, BDD, TEST, IMPL, TASK, STATUS. Types: feat, add, fix, refactor, remove, update.
-6. **Token economy.** Minimal output, minimal code, minimal comments. Only what matters.
-7. **All English.** Code, comments, docs, commits — English only.
-8. **Feature is the atom.** Nothing exists without feature link. No orphan files, tests, or code.
-9. **No bypass flags.** No `--force`, `--skip-validation`, `--no-verify`. Ever.
-10. **Transparency.** If something fails, explain WHY. Never pretend it works.
-
-## Mandatory Session Start Protocol
-
-On EVERY session start, BEFORE any work:
-1. Read `.ptsd/review-status.yaml` — where each feature is
-2. Read `.ptsd/tasks.yaml` — pending tasks
-3. Read `.ptsd/issues.yaml` — known recurring issues (avoid repeating mistakes)
-4. Decide what to work on based on current state
-
-## Mandatory Progress Tracking
-
-Record progress IMMEDIATELY as it happens. Not at end, not in batch. Every state change = immediate file update to `review-status.yaml`, `state.yaml`, or `tasks.yaml`.
-
-### review-status.yaml format
-
-File contains ALL registered features. Fields:
-- `stage`: `prd` | `seed` | `bdd` | `tests` | `impl`
-- `tests`: `absent` | `written`
-- `review`: `pending` | `passed` | `failed`
-- `issues`: int (0 = clean)
-- `issues_list`: string[] (only when issues > 0)
-
-Update triggers: test written, review done, stage advanced, issue fixed.
-On fix: remove from `issues_list`, decrement. At 0: set `passed`, drop `issues_list`.
-
-### Gate Check: AI-Blocked Files
-
-`GateCheck()` blocks LLM writes to files not in the allowed list. Key restriction: **`.ptsd/review-status.yaml` cannot be edited directly** — use `ptsd review` commands instead. Allowed files include `.ptsd/docs/PRD.md`, `.ptsd/tasks.yaml`, `.ptsd/state.yaml`, `.ptsd/features.yaml`, `.ptsd/ptsd.yaml`, `.ptsd/issues.yaml`, `CLAUDE.md`, `.claude/settings.json`, `.ptsd/skills/**`, `.claude/hooks/**`.
-
-### Skills Generation
-
-`ptsd init` writes 13 skill files to both `.ptsd/skills/` (project reference) and `.claude/skills/<name>/SKILL.md` (Claude Code auto-discovery). Skills: `write-prd`, `write-seed`, `write-bdd`, `write-tests`, `write-impl`, `create-tasks`, `review-prd`, `review-seed`, `review-bdd`, `review-tests`, `review-impl`, `adopt`, `workflow`.
-
-## CLI Commands
-
-20 commands: `init`, `adopt`, `feature`, `config`, `task`, `prd`, `seed`, `bdd`, `test`, `status`, `validate`, `hooks`, `review`, `skills`, `issues`, `context`, `gate-check`, `auto-track`, `help`, `version`.
-
-Key subcommands: `prd check|show`, `seed init|add`, `bdd add|list`, `test run|map`, `feature add|list|status`, `task add|list|next|done`.
-
-Note: `ptsd test map` requires a `@feature:<id>` tag in the BDD file.
-
-## Workflow
-
-1. `ptsd task next --agent` — get next task
-2. Read the linked PRD section, BDD scenarios, seed data
-3. Do the work
-4. **Record progress immediately** in state.yaml / review-status.yaml / tasks.yaml
-5. `ptsd validate --agent` — check before commit
-6. Commit with proper `[SCOPE] type: message`
-
-## Commit Scope Validation
-
-ptsd classifies staged files by path → pipeline stage. On commit:
-1. Files must match declared `[SCOPE]`
-2. Missing scope = blocked
-3. Mismatched scope = blocked
-
-## Output Modes
-
-- **Human mode** (default): interactive TUI (not yet implemented — returns AgentRenderer)
-- **Agent mode** (`--agent`): ultra-compact, zero decoration, exact file:line coordinates
-
-LLM ALWAYS uses `--agent`. Error format: `err:<category> <message>` (single line, no stack traces).
-Categories: pipeline, config, io, user, test.
-
-## Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| 0 | Success |
-| 1 | Validation failure, pipeline violation |
-| 2 | Bad arguments |
-| 3 | Config error |
-| 4 | I/O error |
-| 5 | Test runner failure |
-
-## Features (17 total)
-
-### Core
-- `config` — Configuration System
-- `feature-mgmt` — Feature Management
-- `task-mgmt` — Task Management
-- `validate` — Pipeline Validation
-- `git-hooks` — Git Hook Enforcement
-- `status` — Project Status
-- `output` — Dual Render Mode
-- `init` — Project Initialization
-
-### Pipeline
-- `prd-check` — PRD Validation
-- `seed-mgmt` — Seed Management
-- `bdd-mgmt` — BDD Management
-- `test-integration` — Test Integration
-- `state-tracking` — State & Regression Detection
-
-### Advanced
-- `review` — Quality Scoring
-- `skills` — Skill Generation
-- `adopt` — Existing Project Bootstrap
-- `common-issues` — Common Issues Registry
-
-## Common Issues Registry
-
-`.ptsd/issues.yaml` — recurring problems. LLM reads at session start.
-- `id`: slug, unique
-- `category`: env | access | io | config | test | llm
-- `summary`: one line, max 80 chars
-- `fix`: one line, concrete action
-
-Add on second occurrence. Remove when root cause fixed. No duplicates, no essays.
-
-## Key Paths
-
-| What | Where |
-|------|-------|
-| PRD | `.ptsd/docs/PRD.md` |
-| Features | `.ptsd/features.yaml` |
-| Review Status | `.ptsd/review-status.yaml` |
-| State | `.ptsd/state.yaml` |
-| Tasks | `.ptsd/tasks.yaml` |
-| Issues | `.ptsd/issues.yaml` |
-| Config | `.ptsd/ptsd.yaml` |
-| BDD | `.ptsd/bdd/<id>.feature` |
-| Seeds | `.ptsd/seeds/<id>/` |
-| Skills | `.ptsd/skills/` |
-| Source | `cmd/`, `internal/` |
-| Tests | `*_test.go` alongside source |
+1. **`loadFeatures()` is called from many places** -- gatecheck, context, validation, adopt, review. It re-reads `features.yaml` each time. Don't assume caching.
+2. **`stageOrder` map in `autotrack.go`** is used by context, review, and state. Changing it affects stage comparison everywhere.
+3. **Template changes require rebuild** -- `//go:embed` bakes templates into binary at compile time.
+4. **`review-status.yaml` is gate-blocked** -- AI cannot edit it directly. Only `ptsd review` and `AutoTrack()` write it.
+5. **`ptsd init` reinit path** returns early before the fresh-init code. Changes to fresh init don't affect reinit unless you also update `ReInitProjectWithTool`.
+6. **`adopt` uses `deferred` status** for test-discovered features. `deferred` = excluded from all pipeline checks. User activates with `feature status <id> in-progress`.
+7. **Empty `Pipeline` field on Feature** = resolve from config default. Don't assume it's always set.
 
 <!-- ---ptsd--- -->
 # Claude Agent Instructions
@@ -296,32 +163,35 @@ Add on second occurrence. Remove when root cause fixed. No duplicates, no essays
 
 PTSD (iron law) > User (context provider) > Assistant (executor)
 
-- PTSD decides what CAN and CANNOT be done. Pipeline, gates, validation — non-negotiable.
-  Hooks enforce this automatically — writes that violate pipeline are BLOCKED.
+- PTSD decides what CAN and CANNOT be done. Pipeline, gates, validation -- non-negotiable.
+  Hooks enforce this automatically -- writes that violate pipeline are BLOCKED.
 - User provides context and requirements. User also follows ptsd rules.
 - Assistant executes within ptsd constraints. Writes code, docs, tests on behalf of user.
 
 ## Session Start Protocol
 
 EVERY session, BEFORE any work:
-1. Run: ptsd context --agent — see full pipeline state
-2. Run: ptsd task next --agent — get next task
+1. Run: ptsd context --agent -- see full pipeline state
+2. Run: ptsd task next --agent -- get next task
 3. Follow output exactly.
 
 ## Commands (always use --agent flag)
 
-- ptsd context --agent              — full pipeline state (auto-injected by hooks)
-- ptsd status --agent               — project overview
-- ptsd task next --agent            — next task to work on
-- ptsd task update <id> --status WIP — mark task in progress
-- ptsd validate --agent             — check pipeline before commit
-- ptsd feature list --agent         — list all features
-- ptsd seed init <id> --agent       — initialize seed directory
-- ptsd gate-check --file <path> --agent — check if file write is allowed
+- ptsd context --agent              -- full pipeline state (auto-injected by hooks)
+- ptsd status --agent               -- project overview
+- ptsd task next --agent            -- next task to work on
+- ptsd task update <id> --status WIP -- mark task in progress
+- ptsd validate --agent             -- check pipeline before commit
+- ptsd feature list --agent         -- list all features
+- ptsd seed init <id> --agent       -- initialize seed directory
+- ptsd gate-check --file <path> --agent -- check if file write is allowed
+- ptsd test map --feature <id> <test-file> -- map test without BDD (for lite pipeline)
+- ptsd feature pipeline <id> <profile> -- change feature pipeline
+- ptsd migrate --agent            -- migrate project to current version
 
 ## Skills
 
-PTSD pipeline skills are in `.claude/skills/` — auto-loaded when relevant.
+PTSD pipeline skills are in `.claude/skills/` -- auto-loaded when relevant.
 
 | Skill | When to Use |
 |-------|------------|
@@ -341,12 +211,23 @@ PTSD pipeline skills are in `.claude/skills/` — auto-loaded when relevant.
 
 Use the corresponding write skill, then review skill at each pipeline stage.
 
-## Pipeline (strict order, no skipping)
+Note: write-seed is only required for full pipeline. write-bdd is required for full and standard pipelines. Lite pipeline skips both -- write tests directly from PRD.
 
-PRD → Seed → BDD → Tests → Implementation
+## Pipeline Profiles
 
-Each stage requires review score ≥ 7 before advancing.
-Hooks enforce gates automatically — blocked writes show the reason.
+Each feature has a pipeline profile that determines required stages:
+
+| Profile | Stages | Use For |
+|---------|--------|---------|
+| full | PRD -> Seed -> BDD -> Tests -> Impl | Complex, data-heavy features |
+| standard | PRD -> BDD -> Tests -> Impl | Default. Most features |
+| lite | PRD -> Tests -> Impl | Simple utilities, config |
+
+Check feature pipeline: `ptsd feature show <id> --agent`
+Change pipeline: `ptsd feature pipeline <id> full|standard|lite`
+
+Each required stage needs review score >= 7 before advancing.
+Hooks enforce gates automatically -- blocked writes show the reason.
 
 ## Rules
 
@@ -365,23 +246,26 @@ When ptsd status/validate shows unexpected results, debug with these steps:
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| TESTS:0 but test files exist | Tests not mapped to features | `ptsd test map .ptsd/bdd/<id>.feature <test-file>` for each feature |
+| TESTS:0 but test files exist | Tests not mapped to features | `ptsd test map .ptsd/bdd/<id>.feature <test-file>` or `ptsd test map --feature <id> <test-file>` (lite pipeline) |
 | BDD:0 but .feature files exist | State hashes empty, SyncState not run | `ptsd status --agent` triggers sync; if still 0, check `.ptsd/bdd/<id>.feature` has `@feature:<id>` tag on line 1 |
 | Feature stuck at wrong stage | review-status.yaml stale or stage not advanced | Run `ptsd review <id> <stage> <score>` to advance; check `ptsd context --agent` for blockers |
-| "no test files mapped" on `ptsd test run` | Test mapping missing in state.yaml | `ptsd test map .ptsd/bdd/<id>.feature <test-file>` |
+| "no test files mapped" on `ptsd test run` | Test mapping missing in state.yaml | `ptsd test map .ptsd/bdd/<id>.feature <test-file>` or `--feature <id> <test-file>` |
 | Gate blocks file write | File not in allowed list for current stage | Check `ptsd gate-check --file <path> --agent`; advance feature to correct stage first |
 | Validate shows "mock detected" | Test file contains mock/stub patterns | Replace mocks with real file-based tests in temp directories |
 | Regression warning on status | Artifact file changed after stage was reviewed | Re-review the stage: `ptsd review <id> <stage> <score>` |
 
 ### Debug flow
-1. `ptsd context --agent` — shows next action, blockers, stage per feature
-2. `ptsd feature show <id> --agent` — shows artifact counts and test stats
-3. `ptsd validate --agent` — shows all pipeline violations
-4. Check `.ptsd/state.yaml` — hashes, test mappings, stages
-5. Check `.ptsd/review-status.yaml` — review verdicts per feature
+1. `ptsd context --agent` -- shows next action, blockers, stage per feature
+2. `ptsd feature show <id> --agent` -- shows artifact counts and test stats
+3. `ptsd validate --agent` -- shows all pipeline violations
+4. Check `.ptsd/state.yaml` -- hashes, test mappings, stages
+5. Check `.ptsd/review-status.yaml` -- review verdicts per feature
 
 ### Test mapping
-Each feature needs: BDD file (`.ptsd/bdd/<id>.feature`) with `@feature:<id>` tag → mapped to test file via `ptsd test map`. Without mapping, ptsd cannot track test results per feature.
+Features need test files mapped to track results:
+- Standard/full pipeline: `ptsd test map .ptsd/bdd/<id>.feature <test-file>` (reads @feature tag from BDD)
+- Lite pipeline (no BDD): `ptsd test map --feature <id> <test-file>` (direct mapping)
+Without mapping, ptsd cannot track test results per feature.
 
 ## Forbidden
 
