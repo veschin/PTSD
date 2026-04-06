@@ -27,7 +27,7 @@
   <!-- HERO -->
   <section id="hero">
     <div class="wrap hero-wrap">
-      <img src="logo.png" alt="PTSD" class="hero-logo" width="480">
+      <img src="logo.png" alt="PTSD" class="hero-logo" width="640">
       <p class="hero-sub">A structured development pipeline for AI-driven projects.</p>
       <p class="hero-thesis">AI agents produce code. PTSD ensures the code was worth producing.</p>
       <div class="install-pill"><code>go install github.com/veschin/ptsd/cmd/ptsd@latest</code></div>
@@ -210,12 +210,9 @@ next: config stage=prd action=write-tests pipeline=lite</pre>
 
       <div class="skill-browser">
         <div class="skill-nav">
-          <button class="skill-arr" id="skill-prev">&larr;</button>
-          <span class="skill-current" id="skill-label">write-prd</span>
-          <button class="skill-arr" id="skill-next">&rarr;</button>
+          <select class="skill-select" id="skill-select"></select>
         </div>
         <pre class="code light skill-view" id="skill-view"></pre>
-        <div class="skill-dots" id="skill-dots"></div>
       </div>
     </div>
   </section>

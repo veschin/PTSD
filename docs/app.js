@@ -44,13 +44,22 @@ function initTOC() {
   function checkWidth() { toc.style.display = window.innerWidth >= 1100 ? "block" : "none"; }
   checkWidth();
   window.addEventListener("resize", checkWidth);
+  // Single active: track which section is most visible
   if (!("IntersectionObserver" in window)) return;
+  var visibleSections = {};
   var obs = new IntersectionObserver(function(entries) {
     entries.forEach(function(e) {
-      var link = toc.querySelector('[data-sec="' + e.target.id + '"]');
-      if (link) link.classList.toggle("active", e.isIntersecting);
+      visibleSections[e.target.id] = e.isIntersecting ? e.intersectionRatio : 0;
     });
-  }, { rootMargin: "-15% 0px -65% 0px" });
+    // Find the topmost visible section
+    var best = null;
+    defs.forEach(function(d) {
+      if (visibleSections[d.id] > 0 && !best) best = d.id;
+    });
+    toc.querySelectorAll("a").forEach(function(a) {
+      a.classList.toggle("active", a.dataset.sec === best);
+    });
+  }, { rootMargin: "0px 0px -60% 0px", threshold: [0, 0.1] });
   defs.forEach(function(d) { var el = document.getElementById(d.id); if (el) obs.observe(el); });
 }
 
@@ -410,9 +419,6 @@ description: Use when writing tests from BDD scenarios for a feature
 - Forgetting to test error message prefixes (err:validation, err:io, etc.).
 `
 };
-var skillIndex = 0;
-var skillNames = [];
-
 function highlightSkill(raw) {
   var escaped = raw
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -444,43 +450,26 @@ function highlightSkill(raw) {
   return lines.join('\n').replace(/`([^`]+)`/g, '<code>$1</code>');
 }
 
-function showSkill(i) {
+function showSkill(name) {
   var view = document.getElementById("skill-view");
-  var label = document.getElementById("skill-label");
-  var dots = document.querySelectorAll(".skill-dot");
-  if (!view || !skillNames[i]) return;
-
-  skillIndex = i;
-  label.textContent = skillNames[i];
-  view.innerHTML = highlightSkill(SKILL_DATA[skillNames[i]]);
-  dots.forEach(function(d, j) { d.classList.toggle("active", j === i); });
+  if (!view || !SKILL_DATA[name]) return;
+  view.innerHTML = highlightSkill(SKILL_DATA[name]);
 }
 
 function initSkills() {
+  var sel = document.getElementById("skill-select");
   var view = document.getElementById("skill-view");
-  var dotsEl = document.getElementById("skill-dots");
-  var prev = document.getElementById("skill-prev");
-  var next = document.getElementById("skill-next");
-  if (!view || !dotsEl) return;
+  if (!sel || !view) return;
 
-  skillNames = Object.keys(SKILL_DATA);
-
-  // build dots
-  skillNames.forEach(function(_, i) {
-    var dot = document.createElement("button");
-    dot.className = "skill-dot";
-    dot.addEventListener("click", function() { showSkill(i); });
-    dotsEl.appendChild(dot);
+  Object.keys(SKILL_DATA).forEach(function(name) {
+    var opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name + ".md";
+    sel.appendChild(opt);
   });
 
-  prev.addEventListener("click", function() {
-    showSkill((skillIndex - 1 + skillNames.length) % skillNames.length);
-  });
-  next.addEventListener("click", function() {
-    showSkill((skillIndex + 1) % skillNames.length);
-  });
-
-  showSkill(0);
+  sel.addEventListener("change", function() { showSkill(sel.value); });
+  showSkill(Object.keys(SKILL_DATA)[0]);
 }
 
 // ===== Init =====
