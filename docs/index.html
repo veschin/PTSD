@@ -39,7 +39,13 @@
   <section id="philosophy">
     <div class="wrap narrow">
       <p class="phi-lead">Most AI-generated code is written before the problem is understood.</p>
-      <p class="phi-body">PTSD enforces a different order: requirements first, then proof, then code. Each stage produces a reviewed artifact. The pipeline is not advisory -- hooks intercept every file write. The AI follows the process because it cannot do otherwise.</p>
+      <ul class="phi-list">
+        <li>Requirements are defined before code exists</li>
+        <li>Each stage produces a concrete, reviewed artifact</li>
+        <li>Hooks intercept every file write -- the pipeline is not advisory</li>
+        <li>Stages that fail review are blocked from advancing</li>
+        <li>The AI follows the process because it cannot do otherwise</li>
+      </ul>
     </div>
   </section>
 
