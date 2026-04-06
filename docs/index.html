@@ -43,6 +43,9 @@
         <code>go install github.com/veschin/ptsd/cmd/ptsd@latest</code>
       </div>
       <p class="hero-sub" data-i18n="hero_sub">Go 1.25+ -- single binary -- zero dependencies</p>
+      <div class="hero-cta">
+        <a href="#quickstart" class="cta-link" data-i18n="hero_cta">Quick Start &darr;</a>
+      </div>
     </div>
   </section>
 
@@ -65,6 +68,17 @@
         <div class="step-body">
           <h3 class="step-title" data-i18n="step1_title">Requirements</h3>
           <p class="step-desc" data-i18n="step1_desc">Define what you're building before anyone writes a line of code. Acceptance criteria, edge cases, non-goals. The AI reads this as its contract -- not a suggestion, a constraint.</p>
+          <pre class="step-code"><span class="sc">&lt;!-- feature:auth --&gt;</span>
+<span class="sk">## Authentication</span>
+
+Users log in with email and password.
+
+<span class="sk">Acceptance criteria:</span>
+- Valid credentials -&gt; JWT token
+- Invalid credentials -&gt; 401 error
+- Locked account -&gt; 403 with reason
+
+<span class="sk">Non-goals:</span> social login, 2FA</pre>
         </div>
       </div>
 
@@ -73,7 +87,12 @@
         <div class="step-body">
           <h3 class="step-title" data-i18n="step2_title">Golden Data</h3>
           <p class="step-desc" data-i18n="step2_desc">Prepare real examples of what the code will handle. Not test_user or foo@bar.com -- actual records, actual edge cases. This grounds everything that follows in reality.</p>
-          <p class="step-note" data-i18n="step2_note">v2: optional. Only required in full pipeline profile.</p>
+          <p class="step-note" data-i18n="step2_note">Optional. Only required in the full pipeline profile.</p>
+          <pre class="step-code"><span class="sc"># .ptsd/seeds/auth/users.json</span>
+[
+  {"email": "ada@example.com", "role": "admin", "status": "active"},
+  {"email": "locked@test.co", "status": "locked", "reason": "brute force"}
+]</pre>
         </div>
       </div>
 
@@ -82,7 +101,19 @@
         <div class="step-body">
           <h3 class="step-title" data-i18n="step3_title">Behavior Scenarios</h3>
           <p class="step-desc" data-i18n="step3_desc">Given/When/Then specifications. Each scenario is a concrete claim: given this input, when this happens, then this is the result. Machines can verify claims. They can't verify vibes.</p>
-          <p class="step-note" data-i18n="step3_note">v2: optional for lite profile. Write tests directly from PRD.</p>
+          <p class="step-note" data-i18n="step3_note">Optional for lite profile. Write tests directly from PRD.</p>
+          <pre class="step-code"><span class="sc">@feature:auth</span>
+<span class="sk">Feature:</span> Authentication
+
+  <span class="sk">Scenario:</span> Successful login
+    <span class="sk">Given</span> user "ada@example.com" exists and is active
+    <span class="sk">When</span> she submits valid credentials
+    <span class="sk">Then</span> a JWT token is returned
+
+  <span class="sk">Scenario:</span> Locked account
+    <span class="sk">Given</span> user "locked@test.co" is locked
+    <span class="sk">When</span> login is attempted
+    <span class="sk">Then</span> 403 is returned with reason</pre>
         </div>
       </div>
 
@@ -91,6 +122,23 @@
         <div class="step-body">
           <h3 class="step-title" data-i18n="step4_title">Tests Before Code</h3>
           <p class="step-desc" data-i18n="step4_desc">Write tests that fail. Red lights. They define what done means before implementation starts. No mocks for internal code -- real files, real I/O, real behavior.</p>
+          <pre class="step-code"><span class="sc">// auth_test.go -- tests written BEFORE implementation</span>
+func TestLogin_ValidCredentials(t *testing.T) {
+    user := seedUser(t, "ada@example.com", "active")
+
+    token, err := auth.Login(user.Email, user.Password)
+
+    assert(t, err == nil)
+    assert(t, token != "")
+}
+
+func TestLogin_LockedAccount(t *testing.T) {
+    user := seedUser(t, "locked@test.co", "locked")
+
+    _, err := auth.Login(user.Email, user.Password)
+
+    assert(t, errors.Is(err, auth.ErrLocked))
+}</pre>
         </div>
       </div>
 
@@ -99,44 +147,238 @@
         <div class="step-body">
           <h3 class="step-title" data-i18n="step5_title">Implementation</h3>
           <p class="step-desc" data-i18n="step5_desc">Now write code. Only to make failing tests pass. Nothing speculative, nothing extra. The pipeline already ensured you know what to build and how to prove it works.</p>
+          <pre class="step-code"><span class="sc">// Only code that makes tests pass. Nothing extra.</span>
+func Login(email, password string) (string, error) {
+    user, err := store.FindByEmail(email)
+    if err != nil {
+        return "", ErrInvalidCredentials
+    }
+    if user.Status == "locked" {
+        return "", ErrLocked
+    }
+    if !verify(password, user.HashedPassword) {
+        return "", ErrInvalidCredentials
+    }
+    return generateJWT(user), nil
+}</pre>
         </div>
       </div>
 
     </div>
   </section>
 
+  <!-- ===== PROFILES ===== -->
+  <section id="profiles">
+    <div class="container">
+      <h2 class="section-title reveal" data-i18n="profiles_title">Not every feature needs five stages</h2>
+      <p class="section-intro reveal" data-i18n="profiles_intro">Choose a pipeline profile per feature. Complex data-heavy work gets the full treatment. Simple utilities skip what they don't need.</p>
+      <div class="profiles-table reveal">
+        <div class="profile-row">
+          <span class="profile-name">full</span>
+          <div class="profile-stages">
+            <span class="stage-pill active">PRD</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill active">Seed</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill active">BDD</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill active">Tests</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill active">Impl</span>
+          </div>
+        </div>
+        <div class="profile-row">
+          <span class="profile-name">standard</span>
+          <div class="profile-stages">
+            <span class="stage-pill active">PRD</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill skipped">Seed</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill active">BDD</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill active">Tests</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill active">Impl</span>
+          </div>
+        </div>
+        <div class="profile-row">
+          <span class="profile-name">lite</span>
+          <div class="profile-stages">
+            <span class="stage-pill active">PRD</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill skipped">Seed</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill skipped">BDD</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill active">Tests</span>
+            <span class="stage-arrow">&rarr;</span>
+            <span class="stage-pill active">Impl</span>
+          </div>
+        </div>
+      </div>
+      <div class="light-code reveal"><span class="sc"># Assign a profile when adding a feature</span>
+ptsd feature add auth "Authentication" <span class="sk">--pipeline full</span>
+ptsd feature add config "App Config" <span class="sk">--pipeline lite</span>
+
+<span class="sc"># Change later if needs evolve</span>
+ptsd feature pipeline auth standard</div>
+    </div>
+  </section>
+
+  <!-- ===== ENFORCEMENT ===== -->
+  <section id="enforcement">
+    <div class="container">
+      <h2 class="section-title reveal" data-i18n="enforce_title">How enforcement works</h2>
+      <p class="section-intro reveal" data-i18n="enforce_intro">PTSD doesn't rely on the AI following instructions voluntarily. Hooks intercept every file write and every commit.</p>
+      <div class="enforce-timeline reveal">
+        <div class="enforce-step">
+          <div class="enforce-step-title" data-i18n="enforce_s1_title">Session Start</div>
+          <div class="enforce-step-desc" data-i18n="enforce_s1_desc">Context injected once. AI sees current stage and next action per feature.</div>
+        </div>
+        <div class="enforce-connector"></div>
+        <div class="enforce-step">
+          <div class="enforce-step-title" data-i18n="enforce_s2_title">File Write</div>
+          <div class="enforce-step-desc" data-i18n="enforce_s2_desc">Gate checks stage. Wrong stage? Write is blocked before it happens.</div>
+        </div>
+        <div class="enforce-connector"></div>
+        <div class="enforce-step">
+          <div class="enforce-step-title" data-i18n="enforce_s3_title">After Write</div>
+          <div class="enforce-step-desc" data-i18n="enforce_s3_desc">Stage advances automatically. No manual tracking needed.</div>
+        </div>
+        <div class="enforce-connector"></div>
+        <div class="enforce-step">
+          <div class="enforce-step-title" data-i18n="enforce_s4_title">Commit</div>
+          <div class="enforce-step-desc" data-i18n="enforce_s4_desc">Validate runs. Broken pipeline, bad format -- commit is blocked.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== INTEGRATION ===== -->
+  <section id="integration">
+    <div class="container">
+      <h2 class="section-title reveal" data-i18n="integ_title">Works with your tool</h2>
+      <p class="section-intro reveal" data-i18n="integ_intro">Run <code class="inline-code">ptsd init</code> -- it detects your AI tool and generates the right integration. Switch tools later with <code class="inline-code">ptsd init --tool &lt;name&gt;</code>.</p>
+      <div class="integ-grid reveal">
+
+        <div class="integ-col">
+          <div class="integ-name">Claude Code</div>
+          <pre class="step-code">.claude/settings.json   <span class="sc">-- 3 hooks</span>
+.claude/hooks/*.sh      <span class="sc">-- gate, track, context</span>
+.claude/skills/         <span class="sc">-- 13 auto-discovered skills</span>
+CLAUDE.md               <span class="sc">-- pipeline instructions</span></pre>
+          <p class="integ-note" data-i18n="integ_claude_note">Full enforcement. Every write checked, every stage tracked.</p>
+        </div>
+
+        <div class="integ-col">
+          <div class="integ-name">OpenCode</div>
+          <pre class="step-code">.opencode/plugins/ptsd.ts  <span class="sc">-- gate + track hooks</span>
+.opencode/commands/*.md    <span class="sc">-- 13 commands</span>
+AGENTS.md                  <span class="sc">-- pipeline instructions</span></pre>
+          <p class="integ-note" data-i18n="integ_opencode_note">Plugin-based enforcement. Same pipeline, different tool.</p>
+        </div>
+
+        <div class="integ-col">
+          <div class="integ-name">Generic</div>
+          <pre class="step-code">AGENTS.md               <span class="sc">-- pipeline instructions</span>
+.git/hooks/pre-commit   <span class="sc">-- validates on commit</span>
+.git/hooks/commit-msg   <span class="sc">-- validates format</span></pre>
+          <p class="integ-note" data-i18n="integ_generic_note">Git hooks enforce at commit. AI follows instructions voluntarily.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SKILLS ===== -->
+  <section id="skills">
+    <div class="container">
+      <h2 class="section-title reveal" data-i18n="skills_title">13 specialized instructions</h2>
+      <p class="section-intro reveal" data-i18n="skills_intro">Each pipeline stage has a skill -- a focused instruction set that tells the AI exactly what to produce, what to check, and what mistakes to avoid. The AI doesn't guess how to write BDD scenarios -- it follows a concrete checklist.</p>
+      <div class="light-code reveal"><span class="sc">---</span>
+<span class="sk">name:</span> write-tests
+<span class="sk">description:</span> Write tests from BDD scenarios
+<span class="sc">---</span>
+
+<span class="sk">1.</span> One test per scenario. Test name matches scenario name.
+<span class="sk">2.</span> Real files, real I/O. No mocks for internal code.
+<span class="sk">3.</span> Tests must fail before implementation exists.
+<span class="sk">4.</span> Map tests: ptsd test map &lt;bdd-file&gt; &lt;test-file&gt;
+
+<span class="sc">Profile gate: lite pipeline writes tests from PRD, not BDD.</span></div>
+      <div class="skills-list reveal">
+        <div class="skills-col">
+          <span class="skill-item">write-prd</span>
+          <span class="skill-item">write-seed</span>
+          <span class="skill-item">write-bdd</span>
+          <span class="skill-item">write-tests</span>
+          <span class="skill-item">write-impl</span>
+          <span class="skill-item">create-tasks</span>
+          <span class="skill-item">workflow</span>
+        </div>
+        <div class="skills-col">
+          <span class="skill-item">review-prd</span>
+          <span class="skill-item">review-seed</span>
+          <span class="skill-item">review-bdd</span>
+          <span class="skill-item">review-tests</span>
+          <span class="skill-item">review-impl</span>
+          <span class="skill-item">adopt</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== VERSIONS ===== -->
   <section id="versions">
     <div class="container">
-      <h2 class="versions-title" data-i18n="versions_title">v1 -> v2</h2>
-      <div class="versions-grid reveal">
-        <div class="version-col version-old">
-          <div class="version-label" data-i18n="v1_title">v1.x</div>
-          <ul>
-            <li data-i18n="v1_l1">One pipeline for all features.</li>
-            <li data-i18n="v1_l2">Five mandatory stages. No exceptions.</li>
-            <li data-i18n="v1_l3">Claude Code only.</li>
-            <li data-i18n="v1_l4">Go-centric test detection.</li>
-            <li data-i18n="v1_l5">Context injected twice per message.</li>
-          </ul>
-        </div>
-        <div class="version-col version-new">
-          <div class="version-label" data-i18n="v2_title">v2.0</div>
-          <ul>
-            <li data-i18n="v2_l1">Three pipeline profiles -- full, standard, lite.</li>
-            <li data-i18n="v2_l2">Choose per feature. Skip what you don't need.</li>
-            <li data-i18n="v2_l3">Claude Code, OpenCode, Cursor -- any tool.</li>
-            <li data-i18n="v2_l4">Go, TypeScript, Python, Rust, Ruby, Java, C# -- any language.</li>
-            <li data-i18n="v2_l5">Context injected once per session. 40-60% fewer tokens.</li>
-          </ul>
-        </div>
-      </div>
-      <div class="versions-code reveal">
-        <pre><span class="cc">ptsd feature add auth "Auth" --pipeline full</span>
-<span class="cc">ptsd feature add config "Config" --pipeline lite</span>
-<span class="cc">ptsd migrate</span>                    <span class="cm"># upgrade existing projects</span>
-<span class="cc">ptsd test map --feature id file</span> <span class="cm"># map tests without BDD</span>
-<span class="cc">ptsd adopt</span>                      <span class="cm"># bootstrap from existing code</span></pre>
+      <h2 class="versions-title reveal" data-i18n="versions_title">What changed</h2>
+      <div class="reveal">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th data-i18n="v1_title">v1.x</th>
+              <th data-i18n="v2_title">v2.0</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="ct-label" data-i18n="ct_pipeline">Pipeline</td>
+              <td data-i18n="ct_pipeline_v1">5 stages, all mandatory</td>
+              <td class="ct-better" data-i18n="ct_pipeline_v2">3 profiles: full, standard, lite</td>
+            </tr>
+            <tr>
+              <td class="ct-label" data-i18n="ct_tools">Tools</td>
+              <td data-i18n="ct_tools_v1">Claude Code</td>
+              <td class="ct-better" data-i18n="ct_tools_v2">Claude Code + OpenCode + any</td>
+            </tr>
+            <tr>
+              <td class="ct-label" data-i18n="ct_langs">Languages</td>
+              <td data-i18n="ct_langs_v1">Go</td>
+              <td class="ct-better" data-i18n="ct_langs_v2">Go, TS, JS, Python, Rust, Ruby, Java, C#</td>
+            </tr>
+            <tr>
+              <td class="ct-label" data-i18n="ct_context">Context cost</td>
+              <td data-i18n="ct_context_v1">2x per message</td>
+              <td class="ct-better" data-i18n="ct_context_v2">1x per session (-60%)</td>
+            </tr>
+            <tr>
+              <td class="ct-label" data-i18n="ct_existing">Existing projects</td>
+              <td data-i18n="ct_existing_v1">Manual setup</td>
+              <td class="ct-better" data-i18n="ct_existing_v2">ptsd adopt --auto-discover</td>
+            </tr>
+            <tr>
+              <td class="ct-label" data-i18n="ct_testmap">Test mapping</td>
+              <td data-i18n="ct_testmap_v1">BDD file required</td>
+              <td class="ct-better" data-i18n="ct_testmap_v2">Direct or BDD</td>
+            </tr>
+            <tr>
+              <td class="ct-label" data-i18n="ct_migrate">Migration</td>
+              <td data-i18n="ct_migrate_v1">--</td>
+              <td class="ct-better" data-i18n="ct_migrate_v2">ptsd migrate</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </section>
@@ -146,10 +388,21 @@
     <div class="container">
       <h2 class="section-title reveal" data-i18n="start_title">Quick Start</h2>
       <div class="start-code reveal">
-        <pre><span class="cc">cd my-project &amp;&amp; git init</span>
-<span class="cc">ptsd init --tool claude</span>
-<span class="cc">ptsd feature add auth "Auth" --pipeline standard</span>
-<span class="cc">ptsd context --agent</span></pre>
+        <pre><span class="sc"># Install</span>
+go install github.com/veschin/ptsd/cmd/ptsd@latest
+
+<span class="sc"># Initialize (auto-detects your AI tool)</span>
+cd my-project &amp;&amp; git init
+ptsd init
+
+<span class="sc"># Add features with the right pipeline</span>
+ptsd feature add auth "Authentication" --pipeline full
+ptsd feature add config "App Config" --pipeline lite
+
+<span class="sc"># See what to do next</span>
+ptsd context --agent
+<span class="sc"># next: auth   stage=prd action=write-seed   pipeline=full</span>
+<span class="sc"># next: config stage=prd action=write-tests  pipeline=lite</span></pre>
       </div>
     </div>
   </section>
