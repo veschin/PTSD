@@ -332,6 +332,29 @@ footer a, footer span:not(.logo):not(.sep) { color: var(--text-muted); }
 .rub-2 { color: var(--text-mid); }
 .rub-3 { color: var(--text); font-weight: 500; }
 .rubric-table code { font-size: .72rem; background: rgba(0,0,0,.04); padding: 1px 3px; border-radius: 2px; }
+.bench-detail { margin-bottom: 40px; }
+.detail-table { width: 100%; border-collapse: collapse; font-size: .78rem; margin-bottom: 28px; text-align: center; }
+.detail-table thead th { padding: 6px 8px; font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.dt-group { border-bottom: 2px solid var(--border); }
+.dt-ptsd-group { background: var(--accent-dim); }
+.dt-crit-h { text-align: left; border-bottom: 1px solid var(--border); }
+.dt-run-h { border-bottom: 1px solid var(--border); width: 40px; }
+.dt-ptsd-h { background: var(--accent-dim); }
+.detail-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); color: var(--text-mid); font-family: 'JetBrains Mono', monospace; font-size: .75rem; }
+.dt-crit { text-align: left; font-family: 'Inter', system-ui, sans-serif; font-weight: 500; color: var(--text); font-size: .78rem; white-space: nowrap; }
+.dt-ptsd-cell { background: var(--accent-dim); }
+.dt-total td { font-weight: 700; color: var(--text); border-top: 2px solid var(--border); }
+.detail-notes { margin-top: 8px; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.dn-card { border: 1px solid var(--border); border-radius: 6px; padding: 14px 18px; background: var(--bg); }
+.dn-card p { font-size: .8rem; line-height: 1.6; color: var(--text-mid); margin: 0; }
+.dn-card code { font-size: .72rem; background: rgba(0,0,0,.04); padding: 1px 3px; border-radius: 2px; }
+.dn-ptsd { background: var(--accent-dim); border-color: rgba(155,177,255,.25); }
+.dn-best { border-color: #5a9a68; border-width: 2px; }
+.dn-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.dn-label { font-size: .78rem; font-weight: 600; color: var(--text); }
+.dn-score { font-family: 'JetBrains Mono', monospace; font-size: .85rem; font-weight: 700; color: var(--text-mid); }
+.dn-score-best { color: #5a9a68; }
 .bench-note {
   font-size: .82rem; color: var(--text-muted);
   border-top: 1px solid var(--border); padding-top: 20px;
@@ -351,7 +374,9 @@ footer a, footer span:not(.logo):not(.sep) { color: var(--text-muted); }
   .ef-grid { grid-template-columns: 1fr; }
   .hero-logo { width: 280px; }
   .prof-table, .integ-table, .cmp-table, .bench-table, .rubric-table { font-size: .78rem; display: block; overflow-x: auto; }
+  .detail-table { font-size: .7rem; display: block; overflow-x: auto; }
   .bench-grid { grid-template-columns: 1fr; }
+  .detail-grid { grid-template-columns: 1fr; }
   .bench-legend { font-size: .76rem; }
   .footer-inner { flex-wrap: wrap; gap: 8px; }
 }

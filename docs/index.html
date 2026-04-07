@@ -453,6 +453,79 @@ next: config stage=prd action=write-tests pipeline=lite</pre>
         </table>
       </div>
 
+      <div class="bench-detail">
+        <h3 class="bench-h3">Per-Run Scoring</h3>
+
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th colspan="2" class="dt-group">Sonnet bare</th>
+              <th colspan="2" class="dt-group dt-ptsd-group">Sonnet PTSD</th>
+              <th colspan="2" class="dt-group">GLM-5 bare</th>
+              <th colspan="2" class="dt-group dt-ptsd-group">GLM-5 PTSD</th>
+            </tr>
+            <tr>
+              <th class="dt-crit-h">Criterion</th>
+              <th class="dt-run-h">R1</th><th class="dt-run-h">R2</th>
+              <th class="dt-run-h dt-ptsd-h">R1</th><th class="dt-run-h dt-ptsd-h">R2</th>
+              <th class="dt-run-h">R1</th><th class="dt-run-h">R2</th>
+              <th class="dt-run-h dt-ptsd-h">R1</th><th class="dt-run-h dt-ptsd-h">R2</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="dt-crit">Correctness</td>     <td>3</td><td>3</td> <td class="dt-ptsd-cell">3</td><td class="dt-ptsd-cell">3</td> <td>3</td><td>3</td> <td class="dt-ptsd-cell">3</td><td class="dt-ptsd-cell">3</td></tr>
+            <tr><td class="dt-crit">Test quality</td>    <td>3</td><td>3</td> <td class="dt-ptsd-cell">2</td><td class="dt-ptsd-cell">3</td> <td>2</td><td>2</td> <td class="dt-ptsd-cell">2</td><td class="dt-ptsd-cell">2</td></tr>
+            <tr><td class="dt-crit">Test isolation</td>  <td>3</td><td>3</td> <td class="dt-ptsd-cell">3</td><td class="dt-ptsd-cell">3</td> <td>0</td><td>1</td> <td class="dt-ptsd-cell">1</td><td class="dt-ptsd-cell">2</td></tr>
+            <tr><td class="dt-crit">Code structure</td>  <td>3</td><td>3</td> <td class="dt-ptsd-cell">1</td><td class="dt-ptsd-cell">2</td> <td>3</td><td>3</td> <td class="dt-ptsd-cell">2</td><td class="dt-ptsd-cell">1</td></tr>
+            <tr><td class="dt-crit">Shared storage</td>  <td>3</td><td>3</td> <td class="dt-ptsd-cell">3</td><td class="dt-ptsd-cell">3</td> <td>3</td><td>3</td> <td class="dt-ptsd-cell">3</td><td class="dt-ptsd-cell">2</td></tr>
+            <tr><td class="dt-crit">Error paths</td>     <td>3</td><td>3</td> <td class="dt-ptsd-cell">2</td><td class="dt-ptsd-cell">3</td> <td>2</td><td>2</td> <td class="dt-ptsd-cell">2</td><td class="dt-ptsd-cell">2</td></tr>
+            <tr><td class="dt-crit">Cross-cutting</td>   <td>3</td><td>3</td> <td class="dt-ptsd-cell">3</td><td class="dt-ptsd-cell">3</td> <td>3</td><td>3</td> <td class="dt-ptsd-cell">3</td><td class="dt-ptsd-cell">3</td></tr>
+            <tr><td class="dt-crit">Ambiguity</td>       <td>2</td><td>2</td> <td class="dt-ptsd-cell">3</td><td class="dt-ptsd-cell">3</td> <td>2</td><td>2</td> <td class="dt-ptsd-cell">2</td><td class="dt-ptsd-cell">2</td></tr>
+            <tr><td class="dt-crit">Data realism</td>    <td>2</td><td>2</td> <td class="dt-ptsd-cell">3</td><td class="dt-ptsd-cell">3</td> <td>2</td><td>2</td> <td class="dt-ptsd-cell">2</td><td class="dt-ptsd-cell">3</td></tr>
+            <tr class="dt-total"><td class="dt-crit">Total</td> <td>25</td><td>25</td> <td class="dt-ptsd-cell">23</td><td class="dt-ptsd-cell">26</td> <td>20</td><td>21</td> <td class="dt-ptsd-cell">20</td><td class="dt-ptsd-cell">20</td></tr>
+          </tbody>
+        </table>
+
+        <div class="detail-notes">
+          <h4 class="bench-h3">Critic Notes</h4>
+          <div class="detail-grid">
+            <div class="dn-card">
+              <div class="dn-header"><span class="dn-label">Sonnet bare R1</span> <span class="dn-score">25</span></div>
+              <p>Good separation (main.go, task.go). <code>t.TempDir()</code> with path parameter. Table-driven unit tests + integration tests. Day-level truncation for overdue. Missing "due today" edge case test.</p>
+            </div>
+            <div class="dn-card">
+              <div class="dn-header"><span class="dn-label">Sonnet bare R2</span> <span class="dn-score">25</span></div>
+              <p>Three-file structure (main, store, task). 26 test functions with <code>tempTasksPath</code> helper. <code>captureStdout</code> via os.Pipe &mdash; works but heavy. Overdue uses time-of-day precision, no day truncation. No "due today" edge test.</p>
+            </div>
+            <div class="dn-card dn-ptsd">
+              <div class="dn-header"><span class="dn-label">Sonnet PTSD R1</span> <span class="dn-score">23</span></div>
+              <p>Everything in one <code>main.go</code> &mdash; cost 2 points on structure. Test names mirror BDD scenarios. Some assertions weak: checking <code>!strings.HasPrefix(out, "err:")</code> instead of exact values. Realistic data, correct day truncation.</p>
+            </div>
+            <div class="dn-card dn-ptsd dn-best">
+              <div class="dn-header"><span class="dn-label">Sonnet PTSD R2</span> <span class="dn-score dn-score-best">26</span></div>
+              <p>Highest score. Injectable <code>nowFunc</code> for deterministic time testing. Edge cases: due-today-not-overdue, completed-not-overdue, no-due-date, invalid format. All data realistic ("Buy groceries", "Fix production bug"). Only lost 1 point &mdash; flat package.</p>
+            </div>
+            <div class="dn-card">
+              <div class="dn-header"><span class="dn-label">GLM-5 bare R1</span> <span class="dn-score">20</span></div>
+              <p>Clean domain types with sentinel errors. But tests write to CWD &mdash; hardcoded <code>tasks.json</code>, no temp dirs (isolation: 0). Overdue check has midnight boundary bug. No overdue test at all. Placeholder data.</p>
+            </div>
+            <div class="dn-card">
+              <div class="dn-header"><span class="dn-label">GLM-5 bare R2</span> <span class="dn-score">21</span></div>
+              <p>Atomic write via temp file + rename (nice touch). But tests use <code>os.Chdir</code> &mdash; not parallel-safe. All assertions are <code>strings.Contains</code>, never exact values. Placeholder data ("Test task", "Task to complete").</p>
+            </div>
+            <div class="dn-card dn-ptsd">
+              <div class="dn-header"><span class="dn-label">GLM-5 PTSD R1</span> <span class="dn-score">20</span></div>
+              <p>Created <code>cmd/taskrunner/</code> subdirectory &mdash; only run with package structure. But tests use <code>os.Chdir</code> (isolation: 1). String comparison for dates. No <code>main()</code> visible. Placeholder data ("First", "Second").</p>
+            </div>
+            <div class="dn-card dn-ptsd">
+              <div class="dn-header"><span class="dn-label">GLM-5 PTSD R2</span> <span class="dn-score">20</span></div>
+              <p>Tests build binary via <code>exec.Command</code> &mdash; correct isolation but slow. RFC3339 timestamps instead of YYYY-MM-DD (unusual). Fragile ordering assertions (single-char position check). Custom <code>contains</code> helper reimplements <code>strings.Contains</code>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="bench-takeaway">
         <h3 class="bench-h3">What PTSD Actually Builds</h3>
         <p class="bench-takeaway-lead">Code quality scores are a wash. The difference is in project infrastructure.</p>
