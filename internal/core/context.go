@@ -137,9 +137,16 @@ func BuildContext(projectDir string) (ContextResult, error) {
 			continue
 		}
 
-		action := NextAction(pipeline, stage)
-		if action == "" {
-			action = "review-" + stage
+		var action string
+		if review == "passed" {
+			// Stage reviewed and passed -- move to next stage
+			action = NextAction(pipeline, stage)
+			if action == "" {
+				action = "review-" + stage
+			}
+		} else {
+			// Stage not yet reviewed -- work on current stage
+			action = "write-" + stage
 		}
 
 		result.Lines = append(result.Lines, ContextLine{
