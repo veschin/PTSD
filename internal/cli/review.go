@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/veschin/ptsd/internal/core"
+	"github.com/veschin/ptsd/v2/internal/core"
 )
 
 // RunReview handles the `ptsd review` command.

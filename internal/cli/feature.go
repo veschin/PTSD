@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/veschin/ptsd/internal/core"
-	"github.com/veschin/ptsd/internal/render"
+	"github.com/veschin/ptsd/v2/internal/core"
+	"github.com/veschin/ptsd/v2/internal/render"
 )
 
 func RunFeature(args []string, agentMode bool) int {

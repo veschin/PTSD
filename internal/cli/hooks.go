@@ -6,17 +6,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/veschin/ptsd/internal/core"
+	"github.com/veschin/ptsd/v2/internal/core"
 )
 
 // RunHooks executes `ptsd hooks <subcommand>`. Returns an exit code.
 //
 // Supported subcommands:
 //
-//	install         — write .git/hooks/pre-commit + commit-msg
-//	validate-commit — validate commit message format from file
-//	pre-tool-use    — gate-check for Claude Code PreToolUse hook
-//	post-tool-use   — auto-track for Claude Code PostToolUse hook
+//	install         -- write .git/hooks/pre-commit + commit-msg
+//	validate-commit -- validate commit message format from file
+//	pre-tool-use    -- gate-check for Claude Code PreToolUse hook
+//	post-tool-use   -- auto-track for Claude Code PostToolUse hook
 func RunHooks(args []string, agentMode bool) int {
 	if len(args) == 0 {
 		if agentMode {
@@ -105,7 +105,7 @@ func runValidateCommit(args []string, agentMode bool) int {
 func runPreToolUse(agentMode bool) int {
 	filePath := extractFilePathFromStdin()
 	if filePath == "" {
-		return 0 // No file_path → not a file write → allow
+		return 0 // No file_path -> not a file write -> allow
 	}
 
 	cwd, err := os.Getwd()

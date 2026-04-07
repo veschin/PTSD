@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/veschin/ptsd/internal/core"
+	"github.com/veschin/ptsd/v2/internal/core"
 )
 
 // setupHooksProject creates a minimal .ptsd project with an initialised git
@@ -263,7 +263,7 @@ func TestExtractFilePath_FilePathWithSpaces(t *testing.T) {
 }
 
 func TestExtractFilePath_FilePathWithEscapedQuote(t *testing.T) {
-	// Escaped quote in path — properly handles escape sequences
+	// Escaped quote in path -- properly handles escape sequences
 	input := `{"file_path": "path/with\"quote"}`
 	result := extractFilePathFromReader(strings.NewReader(input))
 	if result != `path/with"quote` {
@@ -372,7 +372,7 @@ func TestHooks_ClassifyFile_IMPL(t *testing.T) {
 }
 
 // TestHooks_ValidCommitScope covers BDD scenario "Valid commit with matching scope":
-// staged files only in .ptsd/bdd/ with [BDD] commit message → hook passes.
+// staged files only in .ptsd/bdd/ with [BDD] commit message -> hook passes.
 func TestHooks_ValidCommitScope(t *testing.T) {
 	dir := setupHooksCoreProject(t)
 	stagedFiles := []string{".ptsd/bdd/login.feature"}
@@ -382,11 +382,11 @@ func TestHooks_ValidCommitScope(t *testing.T) {
 }
 
 // TestHooks_ScopeMismatch covers BDD scenario "Scope mismatch - impl files with BDD scope":
-// staging both an IMPL file and a BDD file with [BDD] scope → hook fails with err:git.
+// staging both an IMPL file and a BDD file with [BDD] scope -> hook fails with err:git.
 func TestHooks_ScopeMismatch(t *testing.T) {
 	dir := setupHooksCoreProject(t)
 	// src/auth.ts classified as IMPL; .ptsd/bdd/auth.feature classified as BDD.
-	// [BDD] scope mismatches the IMPL file → error.
+	// [BDD] scope mismatches the IMPL file -> error.
 	stagedFiles := []string{"src/auth.ts", ".ptsd/bdd/auth.feature"}
 	err := core.ValidateCommit(dir, "[BDD] add: auth scenarios", stagedFiles)
 	if err == nil {
@@ -398,7 +398,7 @@ func TestHooks_ScopeMismatch(t *testing.T) {
 }
 
 // TestHooks_MissingScope covers BDD scenario "Missing scope":
-// commit message without [SCOPE] → hook fails with "missing [SCOPE]" error.
+// commit message without [SCOPE] -> hook fails with "missing [SCOPE]" error.
 func TestHooks_MissingScope(t *testing.T) {
 	dir := setupHooksCoreProject(t)
 	stagedFiles := []string{".ptsd/docs/PRD.md"}
@@ -413,7 +413,7 @@ func TestHooks_MissingScope(t *testing.T) {
 
 // TestHooks_TaskScopeSkipsPipelineValidation covers BDD scenario
 // "TASK and STATUS scopes skip pipeline validation":
-// [TASK] scope with .ptsd/tasks.yaml staged → passes without running full validate.
+// [TASK] scope with .ptsd/tasks.yaml staged -> passes without running full validate.
 func TestHooks_TaskScopeSkipsPipelineValidation(t *testing.T) {
 	dir := setupHooksCoreProject(t)
 	stagedFiles := []string{".ptsd/tasks.yaml"}

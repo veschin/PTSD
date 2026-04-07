@@ -40,13 +40,13 @@ The LLM doesn't choose to follow the pipeline -- it **can't not follow it**.
 Requires Go 1.25+
 
 ```bash
-go install github.com/veschin/ptsd/cmd/ptsd@latest
+go install github.com/veschin/ptsd/v2/cmd/ptsd@latest
 ```
 
 If `@latest` returns a stale version (Go proxy caches ~30 min), pin the tag:
 
 ```bash
-go install github.com/veschin/ptsd/cmd/ptsd@v2.0.0
+go install github.com/veschin/ptsd/v2/cmd/ptsd@v2.0.0
 ```
 
 Verify: `ptsd version`

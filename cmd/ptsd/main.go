@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/veschin/ptsd/internal/cli"
+	"github.com/veschin/ptsd/v2/internal/cli"
 )
 
 func main() {

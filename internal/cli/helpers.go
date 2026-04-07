@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/veschin/ptsd/internal/render"
+	"github.com/veschin/ptsd/v2/internal/render"
 )
 
 func newRenderer(agentMode bool) render.Renderer {

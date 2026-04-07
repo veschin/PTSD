@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/veschin/ptsd/internal/core"
+	"github.com/veschin/ptsd/v2/internal/core"
 )
 
 // RunMigrate handles `ptsd migrate`.

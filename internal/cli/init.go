@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/veschin/ptsd/internal/core"
+	"github.com/veschin/ptsd/v2/internal/core"
 )
 
 // RunInit handles `ptsd init [name]`.
