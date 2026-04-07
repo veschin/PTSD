@@ -11,7 +11,7 @@ import (
 func TestAdoptCreatesStructure(t *testing.T) {
 	dir := t.TempDir()
 
-	err := AdoptProject(dir)
+	_, err := AdoptProject(dir)
 	if err != nil {
 		t.Fatalf("AdoptProject failed: %v", err)
 	}
@@ -40,7 +40,7 @@ func TestAdoptCreatesStructure(t *testing.T) {
 func TestAdoptRefusesIfAlreadyInitialized(t *testing.T) {
 	dir := setupProjectWithFeatures(t, "existing:planned")
 
-	err := AdoptProject(dir)
+	_, err := AdoptProject(dir)
 	if err == nil {
 		t.Fatal("expected error for already-initialized project")
 	}
@@ -77,7 +77,7 @@ func TestAdoptDiscoversBDDFiles(t *testing.T) {
 		}
 	}
 
-	err := AdoptProject(dir)
+	_, err := AdoptProject(dir)
 	if err != nil {
 		t.Fatalf("AdoptProject failed: %v", err)
 	}
@@ -192,7 +192,7 @@ func TestAdoptDryRunRefusesIfAlreadyInitialized(t *testing.T) {
 func TestAdoptEmptyProject(t *testing.T) {
 	dir := t.TempDir()
 
-	err := AdoptProject(dir)
+	_, err := AdoptProject(dir)
 	if err != nil {
 		t.Fatalf("AdoptProject on empty project failed: %v", err)
 	}
