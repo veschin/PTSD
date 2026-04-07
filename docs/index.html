@@ -310,78 +310,182 @@ next: config stage=prd action=write-tests pipeline=lite</pre>
   <section id="benchmark" class="alt-bg">
     <div class="wrap">
       <h2 class="sec-title">Benchmark</h2>
-      <p class="sec-sub">Same project, same spec. 8 runs across two models. Blind evaluation.</p>
+      <p class="sec-sub">Does pipeline enforcement improve AI-generated code?</p>
 
-      <p class="bench-method">2×2 within-model comparison: Sonnet and <a href="https://github.com/veschin/GoLeM" target="_blank" rel="noopener">GLM-5 via GoLeM</a>, with and without PTSD. N=2 per cell. Identical PRD (intentionally vague -- no exact output strings). Blind evaluation by Opus on anonymized directories. 9 criteria, 0-3 each.</p>
+      <div class="bench-setup">
+        <h3 class="bench-h3">Setup</h3>
+        <ul class="bench-bullets">
+          <li><strong>Project:</strong> Go CLI task manager, 5 features with intentional complexity traps (shared state, cross-cutting concerns, vague requirements)</li>
+          <li><strong>Models:</strong> Claude Sonnet 4.6 and <a href="https://github.com/veschin/GoLeM" target="_blank" rel="noopener">GLM-5 via GoLeM</a></li>
+          <li><strong>Design:</strong> 2&times;2 within-model &mdash; each model is its own control. N=2 per cell, 8 runs total</li>
+          <li><strong>PRD:</strong> Identical for all runs. Intentionally vague &mdash; no exact output strings, no error messages, no date formats</li>
+          <li><strong>Evaluation:</strong> Blind &mdash; directories anonymized (A-H), scored by Opus on 9 criteria (0-3 each, max 27)</li>
+        </ul>
+      </div>
 
-      <table class="bench-table">
-        <thead><tr><th>Model</th><th>Condition</th><th>Avg Score</th><th>Tests</th><th>Test Files</th><th>Commits</th></tr></thead>
-        <tbody>
-          <tr>
-            <td class="bn-model">Sonnet</td>
-            <td class="bn-bare">bare</td>
-            <td>25.0/27</td>
-            <td>22</td>
-            <td>1</td>
-            <td>0-1</td>
-          </tr>
-          <tr>
-            <td class="bn-model">Sonnet</td>
-            <td class="bn-ptsd">PTSD</td>
-            <td>24.5/27</td>
-            <td>26</td>
-            <td>5</td>
-            <td>4-8</td>
-          </tr>
-          <tr>
-            <td class="bn-model">GLM-5</td>
-            <td class="bn-bare">bare</td>
-            <td>20.5/27</td>
-            <td>9</td>
-            <td>1</td>
-            <td>1</td>
-          </tr>
-          <tr>
-            <td class="bn-model">GLM-5</td>
-            <td class="bn-ptsd">PTSD</td>
-            <td>20.0/27</td>
-            <td>24</td>
-            <td>5</td>
-            <td>8-13</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="bench-results">
+        <h3 class="bench-h3">Results</h3>
+        <table class="bench-table">
+          <thead><tr><th>Model</th><th>Condition</th><th>Score</th><th>Tests</th><th>Test Files</th><th>Commits</th></tr></thead>
+          <tbody>
+            <tr class="bench-row-bare">
+              <td class="bn-model">Sonnet</td>
+              <td class="bn-cond bn-bare">bare</td>
+              <td class="bn-score">25.0<span>/27</span></td>
+              <td>22</td>
+              <td>1</td>
+              <td>0&ndash;1</td>
+            </tr>
+            <tr class="bench-row-ptsd">
+              <td class="bn-model">Sonnet</td>
+              <td class="bn-cond bn-ptsd">PTSD</td>
+              <td class="bn-score">24.5<span>/27</span></td>
+              <td>26</td>
+              <td>5</td>
+              <td>4&ndash;8</td>
+            </tr>
+            <tr class="bench-row-bare">
+              <td class="bn-model">GLM-5</td>
+              <td class="bn-cond bn-bare">bare</td>
+              <td class="bn-score">20.5<span>/27</span></td>
+              <td>9</td>
+              <td>1</td>
+              <td>1</td>
+            </tr>
+            <tr class="bench-row-ptsd">
+              <td class="bn-model">GLM-5</td>
+              <td class="bn-cond bn-ptsd">PTSD</td>
+              <td class="bn-score">20.0<span>/27</span></td>
+              <td>24</td>
+              <td>5</td>
+              <td>8&ndash;13</td>
+            </tr>
+          </tbody>
+        </table>
 
-      <h3 class="bench-insight-title">What PTSD Actually Builds</h3>
-
-      <div class="bench-grid">
-        <div class="bench-card reveal">
-          <h4>After bare run</h4>
-          <ul class="bench-list">
-            <li class="bl-yes">Working code</li>
-            <li class="bl-yes">Passing tests</li>
-            <li class="bl-no">Feature registry</li>
-            <li class="bl-no">BDD scenarios</li>
-            <li class="bl-no">Test-to-feature mapping</li>
-            <li class="bl-no">Review history</li>
-            <li class="bl-no">Stage-separated commits</li>
-          </ul>
-        </div>
-        <div class="bench-card bench-card-ptsd reveal">
-          <h4>After PTSD run</h4>
-          <ul class="bench-list">
-            <li class="bl-yes">Working code</li>
-            <li class="bl-yes">Passing tests</li>
-            <li class="bl-yes bl-desc">Feature registry <span>-- IDs, status, pipeline stage</span></li>
-            <li class="bl-yes bl-desc">BDD scenarios <span>-- Gherkin specs per feature</span></li>
-            <li class="bl-yes bl-desc">Test-to-feature mapping <span>-- each test mapped via BDD</span></li>
-            <li class="bl-yes bl-desc">Review history <span>-- what was reviewed, when, score</span></li>
-            <li class="bl-yes bl-desc">Stage-separated commits <span>-- [SCOPE] format, per-stage</span></li>
-          </ul>
+        <div class="bench-legend">
+          <p><strong>Score</strong> &mdash; blind evaluation, 9 criteria &times; 0-3 points each (max 27). See rubric below</p>
+          <p><strong>Tests</strong> &mdash; average number of test functions per run</p>
+          <p><strong>Test Files</strong> &mdash; bare produces 1 monolithic file; PTSD produces 1 per feature</p>
+          <p><strong>Commits</strong> &mdash; bare: single commit or none; PTSD: stage-separated with <code>[SCOPE]</code> format</p>
         </div>
       </div>
 
-      <p class="bench-note"><em>PTSD doesn't make the first implementation better -- it makes the project developable. Full methodology and per-run data: <a href="https://github.com/veschin/ptsd/blob/main/FEEDBACK.md" target="_blank" rel="noopener">FEEDBACK.md</a></em></p>
+      <div class="bench-rubric">
+        <h3 class="bench-h3">Scoring Rubric</h3>
+        <p class="bench-rubric-intro">Each criterion scored 0&ndash;3 with anchored definitions. Evaluator does not know which projects used PTSD.</p>
+        <table class="rubric-table">
+          <thead><tr><th>#</th><th>Criterion</th><th>0</th><th>1</th><th>2</th><th>3</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="rub-n">1</td>
+              <td class="rub-name">Correctness</td>
+              <td class="rub-0">Doesn't compile</td>
+              <td class="rub-1">Compiles, tests fail</td>
+              <td class="rub-2">All tests pass</td>
+              <td class="rub-3">Tests pass + all spec requirements met</td>
+            </tr>
+            <tr>
+              <td class="rub-n">2</td>
+              <td class="rub-name">Test quality</td>
+              <td class="rub-0">No tests</td>
+              <td class="rub-1">Assert only <code>err==nil</code></td>
+              <td class="rub-2">Assert concrete values, happy path</td>
+              <td class="rub-3">Happy + error + edge cases</td>
+            </tr>
+            <tr>
+              <td class="rub-n">3</td>
+              <td class="rub-name">Test isolation</td>
+              <td class="rub-0">Shared state</td>
+              <td class="rub-1">Partial isolation</td>
+              <td class="rub-2">Temp dirs, minor leaks</td>
+              <td class="rub-3">Full isolation, no mocks</td>
+            </tr>
+            <tr>
+              <td class="rub-n">4</td>
+              <td class="rub-name">Code structure</td>
+              <td class="rub-0">One function</td>
+              <td class="rub-1">Separate functions, one file</td>
+              <td class="rub-2">Logical separation</td>
+              <td class="rub-3">Clean packages</td>
+            </tr>
+            <tr>
+              <td class="rub-n">5</td>
+              <td class="rub-name">Shared storage</td>
+              <td class="rub-0">Different formats</td>
+              <td class="rub-1">Inconsistent</td>
+              <td class="rub-2">Consistent</td>
+              <td class="rub-3">Designed upfront, coherent</td>
+            </tr>
+            <tr>
+              <td class="rub-n">6</td>
+              <td class="rub-name">Error paths</td>
+              <td class="rub-0">No handling</td>
+              <td class="rub-1">One of two paths</td>
+              <td class="rub-2">Both present</td>
+              <td class="rub-3">Both + messages + tested</td>
+            </tr>
+            <tr>
+              <td class="rub-n">7</td>
+              <td class="rub-name">Cross-cutting</td>
+              <td class="rub-0">Feature isolated</td>
+              <td class="rub-1">Stored, not shown</td>
+              <td class="rub-2">Shown in output</td>
+              <td class="rub-3">Shown + sorted correctly</td>
+            </tr>
+            <tr>
+              <td class="rub-n">8</td>
+              <td class="rub-name">Ambiguity resolution</td>
+              <td class="rub-0">Not implemented</td>
+              <td class="rub-1">Basic, no edge cases</td>
+              <td class="rub-2">Core + detection</td>
+              <td class="rub-3">Core + edges + format decision</td>
+            </tr>
+            <tr>
+              <td class="rub-n">9</td>
+              <td class="rub-name">Data realism</td>
+              <td class="rub-0">"foo", "bar", "test"</td>
+              <td class="rub-1">Mixed</td>
+              <td class="rub-2">Mostly realistic</td>
+              <td class="rub-3">All realistic</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bench-takeaway">
+        <h3 class="bench-h3">What PTSD Actually Builds</h3>
+        <p class="bench-takeaway-lead">Code quality scores are a wash. The difference is in project infrastructure.</p>
+
+        <div class="bench-grid">
+          <div class="bench-card reveal">
+            <h4>After bare run</h4>
+            <ul class="bench-list">
+              <li class="bl-yes">Working code</li>
+              <li class="bl-yes">Passing tests</li>
+              <li class="bl-no">Feature registry</li>
+              <li class="bl-no">BDD scenarios</li>
+              <li class="bl-no">Test-to-feature mapping</li>
+              <li class="bl-no">Review history</li>
+              <li class="bl-no">Stage-separated commits</li>
+            </ul>
+          </div>
+          <div class="bench-card bench-card-ptsd reveal">
+            <h4>After PTSD run</h4>
+            <ul class="bench-list">
+              <li class="bl-yes">Working code</li>
+              <li class="bl-yes">Passing tests</li>
+              <li class="bl-yes bl-desc">Feature registry <span>&mdash; IDs, status, pipeline stage</span></li>
+              <li class="bl-yes bl-desc">BDD scenarios <span>&mdash; Gherkin specs per feature</span></li>
+              <li class="bl-yes bl-desc">Test-to-feature mapping <span>&mdash; each test mapped via BDD</span></li>
+              <li class="bl-yes bl-desc">Review history <span>&mdash; what was reviewed, when, score</span></li>
+              <li class="bl-yes bl-desc">Stage-separated commits <span>&mdash; [SCOPE] format, per-stage</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <p class="bench-note">PTSD doesn't make the first implementation better &mdash; it makes the project developable. Full methodology and per-run data: <a href="https://github.com/veschin/ptsd/blob/main/FEEDBACK.md" target="_blank" rel="noopener">FEEDBACK.md</a></p>
     </div>
   </section>
 

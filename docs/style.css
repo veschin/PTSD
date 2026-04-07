@@ -248,20 +248,55 @@ footer .logo { font-size: .78rem; }
 footer a, footer span:not(.logo):not(.sep) { color: var(--text-muted); }
 
 /* ===== BENCHMARK ===== */
-.bench-method {
-  font-size: .85rem; line-height: 1.7; color: var(--text-muted);
-  margin-bottom: 28px; max-width: 600px;
+.bench-setup, .bench-results, .bench-takeaway { margin-bottom: 40px; }
+.bench-h3 {
+  font-size: .88rem; font-weight: 600; color: var(--text);
+  text-transform: uppercase; letter-spacing: .06em;
+  margin-bottom: 14px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
 }
-.bench-table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-bottom: 40px; }
+.bench-bullets {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.bench-bullets li {
+  font-size: .85rem; line-height: 1.65; color: var(--text-mid);
+  padding-left: 16px; position: relative;
+}
+.bench-bullets li::before {
+  content: ''; position: absolute; left: 0; top: 10px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent);
+}
+.bench-bullets strong { color: var(--text); font-weight: 600; }
+.bench-bullets a { color: #7B8CDE; text-decoration: underline; text-decoration-color: rgba(123,140,222,.3); text-underline-offset: 2px; }
+.bench-bullets a:hover { text-decoration-color: #7B8CDE; }
+.bench-table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-bottom: 20px; }
 .bench-table th {
   text-align: left; padding: 8px 12px; font-size: .72rem; font-weight: 600;
   text-transform: uppercase; letter-spacing: .06em;
   color: var(--text-muted); border-bottom: 2px solid var(--border);
 }
 .bench-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-mid); }
+.bench-row-ptsd { background: var(--accent-dim); }
 .bn-model { font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--text); width: 80px; }
+.bn-cond { font-weight: 500; width: 70px; }
 .bn-bare { color: var(--text-light); }
-.bn-ptsd { color: #7B8CDE; background: var(--accent-dim); font-weight: 500; }
+.bn-ptsd { color: #7B8CDE; }
+.bn-score { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--text); }
+.bn-score span { font-weight: 400; color: var(--text-light); font-size: .8em; }
+.bench-legend {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 16px 20px; border-radius: 6px;
+  background: var(--bg); border: 1px solid var(--border);
+}
+.bench-legend p { font-size: .8rem; line-height: 1.6; color: var(--text-muted); margin: 0; }
+.bench-legend strong { color: var(--text-mid); font-weight: 600; }
+.bench-legend code { font-size: .75rem; background: rgba(0,0,0,.04); padding: 1px 4px; border-radius: 2px; }
+.bench-takeaway-lead {
+  font-size: .9rem; line-height: 1.6; color: var(--text-mid);
+  margin-bottom: 20px;
+}
 .bench-insight-title {
   font-size: 1rem; font-weight: 600; color: var(--text);
   margin-bottom: 16px; letter-spacing: -.01em;
@@ -269,9 +304,10 @@ footer a, footer span:not(.logo):not(.sep) { color: var(--text-muted); }
 .bench-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
 .bench-card {
   border: 1px solid var(--border); border-radius: 6px; padding: 20px 24px;
+  background: var(--bg);
 }
 .bench-card h4 { font-size: .85rem; font-weight: 600; color: var(--text); margin-bottom: 14px; }
-.bench-card-ptsd { background: var(--accent-dim); }
+.bench-card-ptsd { background: var(--accent-dim); border-color: rgba(155,177,255,.3); }
 .bench-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .bench-list li { font-size: .85rem; line-height: 1.5; padding-left: 20px; position: relative; }
 .bench-list li::before { position: absolute; left: 0; font-weight: 600; }
@@ -280,12 +316,28 @@ footer a, footer span:not(.logo):not(.sep) { color: var(--text-muted); }
 .bl-no { color: var(--text-light); text-decoration: line-through; }
 .bl-no::before { content: '✗'; color: var(--text-light); text-decoration: none; display: inline-block; }
 .bl-desc span { color: var(--text-muted); font-size: .8rem; }
+.bench-rubric { margin-bottom: 40px; }
+.bench-rubric-intro { font-size: .82rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.6; }
+.rubric-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.rubric-table th {
+  text-align: left; padding: 6px 10px; font-size: .68rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text-muted); border-bottom: 2px solid var(--border);
+}
+.rubric-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+.rub-n { font-family: 'JetBrains Mono', monospace; color: var(--text-light); width: 24px; text-align: center; }
+.rub-name { font-weight: 600; color: var(--text); white-space: nowrap; width: 120px; }
+.rub-0 { color: var(--text-light); }
+.rub-1 { color: var(--text-muted); }
+.rub-2 { color: var(--text-mid); }
+.rub-3 { color: var(--text); font-weight: 500; }
+.rubric-table code { font-size: .72rem; background: rgba(0,0,0,.04); padding: 1px 3px; border-radius: 2px; }
 .bench-note {
-  font-size: .82rem; color: var(--text-muted); font-style: italic;
+  font-size: .82rem; color: var(--text-muted);
   border-top: 1px solid var(--border); padding-top: 20px;
 }
-.bench-note a { color: var(--text-muted); text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 2px; }
-.bench-note a:hover { color: var(--text); text-decoration-color: var(--text-muted); }
+.bench-note a { color: #7B8CDE; text-decoration: underline; text-decoration-color: rgba(123,140,222,.3); text-underline-offset: 2px; }
+.bench-note a:hover { text-decoration-color: #7B8CDE; }
 
 /* ===== RESPONSIVE ===== */
 /* TOC visibility controlled by JS (>=1100px) */
@@ -298,7 +350,8 @@ footer a, footer span:not(.logo):not(.sep) { color: var(--text-muted); }
   .step-num { width: auto; text-align: left; font-size: 2rem; }
   .ef-grid { grid-template-columns: 1fr; }
   .hero-logo { width: 280px; }
-  .prof-table, .integ-table, .cmp-table, .bench-table { font-size: .78rem; display: block; overflow-x: auto; }
+  .prof-table, .integ-table, .cmp-table, .bench-table, .rubric-table { font-size: .78rem; display: block; overflow-x: auto; }
   .bench-grid { grid-template-columns: 1fr; }
+  .bench-legend { font-size: .76rem; }
   .footer-inner { flex-wrap: wrap; gap: 8px; }
 }
