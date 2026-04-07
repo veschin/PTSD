@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -162,6 +163,61 @@ func hasTestsForFeature(projectDir string, featureID string, state *State) bool 
 		return nil
 	})
 	return found
+}
+
+// Advisory represents a non-blocking hint after validation.
+type Advisory struct {
+	Feature string
+	Message string
+}
+
+// CollectAdvisories returns non-blocking hints about deferred features and missing mappings.
+func CollectAdvisories(projectDir string) []Advisory {
+	features, err := loadFeatures(projectDir)
+	if err != nil {
+		return nil
+	}
+
+	state, _ := LoadState(projectDir)
+
+	var advisories []Advisory
+
+	deferredCount := 0
+	for _, f := range features {
+		if f.Status == "deferred" {
+			deferredCount++
+		}
+	}
+	if deferredCount > 0 {
+		advisories = append(advisories, Advisory{
+			Message: fmt.Sprintf("%d deferred features not validated (activate with ptsd feature status <id> in-progress)", deferredCount),
+		})
+	}
+
+	// Check in-progress features without test mappings
+	for _, f := range features {
+		if f.Status != "in-progress" {
+			continue
+		}
+		if state == nil {
+			continue
+		}
+		fs, ok := state.Features[f.ID]
+		if !ok {
+			continue
+		}
+		// If feature is at tests or impl stage but has no test mappings
+		if fs.Stage == "tests" || fs.Stage == "impl" {
+			if !hasTestsForFeature(projectDir, f.ID, state) {
+				advisories = append(advisories, Advisory{
+					Feature: f.ID,
+					Message: "has no test mappings (ptsd test map --feature " + f.ID + " <test-file>)",
+				})
+			}
+		}
+	}
+
+	return advisories
 }
 
 func scanForMocks(projectDir string) []ValidationError {

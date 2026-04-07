@@ -24,6 +24,17 @@ func RunValidate(args []string, agentMode bool) int {
 		if !agentMode {
 			fmt.Println("ok")
 		}
+		// Print advisories (non-blocking hints)
+		advisories := core.CollectAdvisories(cwd)
+		for _, a := range advisories {
+			if agentMode {
+				if a.Feature != "" {
+					fmt.Printf("advisory: %s %s\n", a.Feature, a.Message)
+				} else {
+					fmt.Printf("advisory: %s\n", a.Message)
+				}
+			}
+		}
 		return 0
 	}
 

@@ -68,12 +68,13 @@ func RunAdopt(args []string, agentMode bool) int {
 			return coreError(agentMode, err)
 		}
 		if agentMode {
-			fmt.Printf("dry-run:ok bdd:%d tests:%d go:%d features:%s\n",
-				len(result.BDDFiles), len(result.TestFiles), len(result.GoPackages), result.FeaturesFile)
+			fmt.Printf("dry-run:ok bdd:%d tests:%d total-source:%d go:%d features:%s\n",
+				len(result.BDDFiles), len(result.TestFiles), result.TotalScanned, len(result.GoPackages), result.FeaturesFile)
 		} else {
 			fmt.Printf("Dry run -- would create: %s\n", result.FeaturesFile)
 			fmt.Printf("BDD features found: %d\n", len(result.BDDFiles))
 			fmt.Printf("Test files found: %d\n", len(result.TestFiles))
+			fmt.Printf("Total source files scanned: %d\n", result.TotalScanned)
 			if len(result.GoPackages) > 0 {
 				fmt.Printf("Test features found: %d (added as deferred)\n", len(result.GoPackages))
 			}
@@ -81,7 +82,8 @@ func RunAdopt(args []string, agentMode bool) int {
 		return 0
 	}
 
-	if err := core.AdoptProject(cwd); err != nil {
+	warnings, err := core.AdoptProject(cwd)
+	if err != nil {
 		return coreError(agentMode, err)
 	}
 
@@ -89,6 +91,13 @@ func RunAdopt(args []string, agentMode bool) int {
 		fmt.Printf("adopt:ok dir:%s\n", cwd)
 	} else {
 		fmt.Printf("Adopted project in %s\n", cwd)
+	}
+	if warnings != nil && warnings.NoRunner {
+		if agentMode {
+			fmt.Println("warn:config no test runner detected -- set testing.runner in .ptsd/ptsd.yaml")
+		} else {
+			fmt.Println("Warning: no test runner detected. Set testing.runner in .ptsd/ptsd.yaml")
+		}
 	}
 	return 0
 }

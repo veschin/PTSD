@@ -13,23 +13,33 @@ type AdoptResult struct {
 	TestFiles    []string // test file paths discovered
 	GoPackages   []string // Go features discovered from test file names
 	FeaturesFile string   // path to features.yaml that would be created
+	TotalScanned int      // total source files scanned (not just matches)
+}
+
+// AdoptWarnings contains non-fatal warnings from AdoptProject.
+type AdoptWarnings struct {
+	NoRunner bool
 }
 
 // AdoptProject bootstraps .ptsd/ structure for an existing project.
 // It scans for BDD .feature files and test files, extracts feature IDs,
 // and creates the .ptsd/ directory structure. Fails if .ptsd/ already exists.
-func AdoptProject(dir string) error {
+func AdoptProject(dir string) (*AdoptWarnings, error) {
 	ptsdDir := filepath.Join(dir, ".ptsd")
 	if _, err := os.Stat(ptsdDir); err == nil {
-		return fmt.Errorf("err:validation already initialized")
+		return nil, fmt.Errorf("err:validation already initialized")
 	}
 
 	result, err := scanProject(dir)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return applyAdopt(dir, result)
+	warnings, err := applyAdopt(dir, result)
+	if err != nil {
+		return nil, err
+	}
+	return warnings, nil
 }
 
 // AdoptDryRun scans the project and returns what would be done without making changes.
@@ -56,11 +66,12 @@ func scanProject(dir string) (*AdoptResult, error) {
 	result.BDDFiles = bddFiles
 
 	// Discover test files using default pattern
-	testFiles, err := discoverTestFiles(dir)
+	testFiles, totalScanned, err := discoverTestFiles(dir)
 	if err != nil {
 		return nil, err
 	}
 	result.TestFiles = testFiles
+	result.TotalScanned = totalScanned
 
 	// Discover features from test file names (as fallback when no BDD files)
 	if len(bddFiles) == 0 {
@@ -157,8 +168,9 @@ func discoverTestFeatures(dir string) ([]string, error) {
 }
 
 // discoverTestFiles finds test files matching the default Go test pattern.
-func discoverTestFiles(dir string) ([]string, error) {
+func discoverTestFiles(dir string) ([]string, int, error) {
 	var testFiles []string
+	totalScanned := 0
 
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -171,6 +183,8 @@ func discoverTestFiles(dir string) ([]string, error) {
 			}
 			return nil
 		}
+		// Count all non-directory files (excluding hidden/vendor)
+		totalScanned++
 		if IsTestFile(path) {
 			rel, err := filepath.Rel(dir, path)
 			if err != nil {
@@ -181,14 +195,14 @@ func discoverTestFiles(dir string) ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("err:io %w", err)
+		return nil, 0, fmt.Errorf("err:io %w", err)
 	}
 
-	return testFiles, nil
+	return testFiles, totalScanned, nil
 }
 
 // applyAdopt creates the .ptsd/ directory structure and imports discovered artifacts.
-func applyAdopt(dir string, result *AdoptResult) error {
+func applyAdopt(dir string, result *AdoptResult) (*AdoptWarnings, error) {
 	ptsdDir := filepath.Join(dir, ".ptsd")
 
 	// Create directory structure
@@ -201,19 +215,22 @@ func applyAdopt(dir string, result *AdoptResult) error {
 	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0755); err != nil {
-			return fmt.Errorf("err:io %w", err)
+			return nil, fmt.Errorf("err:io %w", err)
 		}
 	}
 
 	// Create ptsd.yaml -- detect runner and set appropriate patterns
 	runner := detectTestRunner(dir)
+	warnings := &AdoptWarnings{
+		NoRunner: runner == "",
+	}
 	name := filepath.Base(dir)
 	ptsdYAML, err := renderTemplate("templates/ptsd.yaml.tmpl", struct{ Name, Runner, Tool string }{name, runner, ""})
 	if err != nil {
 		ptsdYAML = "project:\n  name: \"\"\ntesting:\n  runner: \"\"\n  patterns:\n    files: []\nreview:\n  min_score: 7\npipeline:\n  default: standard\n"
 	}
 	if err := os.WriteFile(filepath.Join(ptsdDir, "ptsd.yaml"), []byte(ptsdYAML), 0644); err != nil {
-		return fmt.Errorf("err:io %w", err)
+		return nil, fmt.Errorf("err:io %w", err)
 	}
 
 	// Create features.yaml -- BDD-discovered features are in-progress,
@@ -233,7 +250,7 @@ func applyAdopt(dir string, result *AdoptResult) error {
 		b.WriteString("    pipeline: lite\n")
 	}
 	if err := os.WriteFile(filepath.Join(ptsdDir, "features.yaml"), []byte(b.String()), 0644); err != nil {
-		return fmt.Errorf("err:io %w", err)
+		return nil, fmt.Errorf("err:io %w", err)
 	}
 
 	// Move discovered .feature files to .ptsd/bdd/
@@ -262,7 +279,7 @@ func applyAdopt(dir string, result *AdoptResult) error {
 		return os.Remove(path)
 	})
 	if err != nil {
-		return fmt.Errorf("err:io %w", err)
+		return nil, fmt.Errorf("err:io %w", err)
 	}
 
 	// Create empty state files
@@ -275,20 +292,20 @@ func applyAdopt(dir string, result *AdoptResult) error {
 	for filename, content := range emptyFiles {
 		path := filepath.Join(ptsdDir, filename)
 		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-			return fmt.Errorf("err:io %w", err)
+			return nil, fmt.Errorf("err:io %w", err)
 		}
 	}
 
 	// Create PRD template
 	prdContent := "# PRD\n\nProduct Requirements Document.\n"
 	if err := os.WriteFile(filepath.Join(ptsdDir, "docs", "PRD.md"), []byte(prdContent), 0644); err != nil {
-		return fmt.Errorf("err:io %w", err)
+		return nil, fmt.Errorf("err:io %w", err)
 	}
 
 	// Generate skills, hooks, and instructions
 	if err := ReInitProject(dir); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return warnings, nil
 }
