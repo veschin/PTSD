@@ -201,12 +201,12 @@ func TestBuildContext_NoReviewStatusDefaultsToPrd(t *testing.T) {
 
 	found := false
 	for _, line := range result.Lines {
-		if line.Feature == "auth" && line.Type == ContextNext && line.Action == "write-seed" {
+		if line.Feature == "auth" && line.Type == ContextNext && line.Action == "write-prd" {
 			found = true
 		}
 	}
 	if !found {
-		t.Errorf("expected default prd stage with write-seed action, got: %+v", result.Lines)
+		t.Errorf("expected default prd stage with write-prd action, got: %+v", result.Lines)
 	}
 }
 
