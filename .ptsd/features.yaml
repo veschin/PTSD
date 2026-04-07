@@ -1,57 +1,69 @@
 features:
-  # Core
   - id: init
     title: "Project Initialization"
-    status: planned
+    status: in-progress
+    pipeline: standard
   - id: config
     title: "Configuration System"
-    status: planned
+    status: in-progress
+    pipeline: standard
   - id: feature-mgmt
     title: "Feature Management"
-    status: planned
+    status: in-progress
+    pipeline: standard
   - id: task-mgmt
     title: "Task Management"
-    status: planned
+    status: in-progress
+    pipeline: standard
   - id: validate
     title: "Pipeline Validation"
-    status: planned
+    status: in-progress
+    pipeline: standard
   - id: git-hooks
     title: "Git Hook Enforcement"
-    status: planned
+    status: in-progress
+    pipeline: standard
   - id: status
     title: "Project Status"
-    status: planned
+    status: in-progress
+    pipeline: standard
   - id: output
     title: "Dual Render Mode"
-    status: planned
-
-  # Pipeline
+    status: in-progress
+    pipeline: standard
   - id: prd-check
     title: "PRD Validation"
-    status: planned
+    status: in-progress
+    pipeline: standard
   - id: seed-mgmt
     title: "Seed Management"
-    status: planned
+    status: in-progress
+    pipeline: standard
   - id: bdd-mgmt
     title: "BDD Management"
-    status: planned
+    status: in-progress
+    pipeline: standard
   - id: test-integration
     title: "Test Integration"
-    status: planned
+    status: in-progress
+    pipeline: standard
   - id: state-tracking
     title: "State & Regression Detection"
-    status: planned
-
-  # Advanced
+    status: in-progress
+    pipeline: standard
   - id: review
     title: "Quality Scoring"
-    status: planned
+    status: in-progress
+    pipeline: standard
   - id: skills
     title: "Skill Generation"
-    status: planned
+    status: in-progress
+    pipeline: standard
   - id: adopt
     title: "Existing Project Bootstrap"
-    status: planned
+    status: in-progress
+    pipeline: standard
   - id: common-issues
     title: "Common Issues Registry"
-    status: planned
+    status: in-progress
+    pipeline: standard

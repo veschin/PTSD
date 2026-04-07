@@ -1,6 +1,15 @@
 features:
-  # Core
-  init:
+  adopt:
+    stage: impl
+    tests: written
+    review: passed
+    issues: 0
+  bdd-mgmt:
+    stage: impl
+    tests: written
+    review: passed
+    issues: 0
+  common-issues:
     stage: impl
     tests: written
     review: passed
@@ -15,22 +24,12 @@ features:
     tests: written
     review: passed
     issues: 0
-  task-mgmt:
-    stage: impl
-    tests: written
-    review: passed
-    issues: 0
-  validate:
-    stage: impl
-    tests: written
-    review: passed
-    issues: 0
   git-hooks:
     stage: impl
     tests: written
     review: passed
     issues: 0
-  status:
+  init:
     stage: impl
     tests: written
     review: passed
@@ -40,9 +39,12 @@ features:
     tests: written
     review: passed
     issues: 0
-
-  # Pipeline
   prd-check:
+    stage: impl
+    tests: written
+    review: passed
+    issues: 0
+  review:
     stage: impl
     tests: written
     review: passed
@@ -52,12 +54,7 @@ features:
     tests: written
     review: passed
     issues: 0
-  bdd-mgmt:
-    stage: impl
-    tests: written
-    review: passed
-    issues: 0
-  test-integration:
+  skills:
     stage: impl
     tests: written
     review: passed
@@ -67,24 +64,22 @@ features:
     tests: written
     review: passed
     issues: 0
-
-  # Advanced
-  review:
+  status:
     stage: impl
     tests: written
     review: passed
     issues: 0
-  skills:
+  task-mgmt:
     stage: impl
     tests: written
     review: passed
     issues: 0
-  adopt:
+  test-integration:
     stage: impl
     tests: written
     review: passed
     issues: 0
-  common-issues:
+  validate:
     stage: impl
     tests: written
     review: passed

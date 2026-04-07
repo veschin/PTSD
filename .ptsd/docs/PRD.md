@@ -1,4 +1,4 @@
-# PTSD — Product Requirements Document
+# PTSD -- Product Requirements Document
 
 ## Overview
 
@@ -6,12 +6,12 @@ PTSD (PRD-Test-Seed Dashboard) is a CLI tool that enforces structured AI-driven 
 
 PTSD solves: LLMs skip pipeline steps, hide errors, write mocks instead of real tests, generate garbage files, corrupt existing code, and lie about quality.
 
-PTSD enforces: strict per-feature pipeline (PRD → Seed → BDD → Tests → Implementation), quality scoring at every step, git hooks that block invalid commits, and skills that guide LLMs through each stage.
+PTSD enforces: strict per-feature pipeline (PRD -> Seed -> BDD -> Tests -> Implementation), quality scoring at every step, git hooks that block invalid commits, and skills that guide LLMs through each stage.
 
 ### Two Render Modes
 
 One Bubbletea framework, two outputs:
-- **Human mode** (default): interactive TUI dashboard — tables, colors, navigation, live updates.
+- **Human mode** (default): interactive TUI dashboard -- tables, colors, navigation, live updates.
 - **Agent mode** (`--agent`): ultra-compact, zero decoration, exact file:line coordinates. Every token counts.
 
 LLM is instructed to ALWAYS use `--agent`. Human TUI is never invoked by LLM.
@@ -21,12 +21,12 @@ LLM is instructed to ALWAYS use `--agent`. Human TUI is never invoked by LLM.
 ## Design Principles
 
 - **Feature is the atom.** Nothing exists without a feature link. No orphan files, no unlinked tests, no stray code.
-- **Pipeline per feature.** Strict order, no skipping. Each feature moves independently: PRD → Seed → BDD → Tests → Impl.
+- **Pipeline per feature.** Strict order, no skipping. Each feature moves independently: PRD -> Seed -> BDD -> Tests -> Impl.
 - **Prevention over detection.** Design so mistakes CAN'T happen. Block, don't advise. Error, don't warn.
 - **Strict by default.** No `--skip-validation`. No soft warnings. Pipeline violation = commit blocked.
 - **Golden seed grounds reality.** Concrete example data before scenarios. Catches logical errors in data.
 - **Quality over speed.** 0-10 review scoring. Below threshold = redo. Better to redo than ship garbage.
-- **Token economy.** Every byte of output matters. Skills, status, errors — all minimal. Think more, output less.
+- **Token economy.** Every byte of output matters. Skills, status, errors -- all minimal. Think more, output less.
 - **Git-driven.** All artifacts committed. Hooks enforce pipeline. Commit prefixes allow partial work.
 - **Transparency.** LLM must explain every problem. Hiding errors is worse than the error itself.
 - **No mocks.** Real tests prove real behavior. Mocks only for external integrations. Internal mocks are banned.
@@ -37,10 +37,10 @@ LLM is instructed to ALWAYS use `--agent`. Human TUI is never invoked by LLM.
 ## Per-Feature Pipeline
 
 ```
-PRD → Seed → BDD → Tests → Implementation
+PRD -> Seed -> BDD -> Tests -> Implementation
 ```
 
-Each feature moves through stages independently. Each step requires review (quality score ≥ threshold) before proceeding to the next. Different features can be at different stages.
+Each feature moves through stages independently. Each step requires review (quality score >= threshold) before proceeding to the next. Different features can be at different stages.
 
 ### Stage Requirements
 
@@ -54,11 +54,11 @@ Each feature moves through stages independently. Each step requires review (qual
 
 ### Pipeline Gates
 
-- `ptsd bdd add <id>` — refused if feature has no seed.
-- `ptsd test map <id>` — refused if feature has no BDD scenarios.
-- Creating tasks with `--stage impl` — refused if feature has no tests.
-- Advancing to `implemented` — refused unless all mapped tests pass.
-- `ptsd validate` — errors on any pipeline violation. Blocks commit via git hook.
+- `ptsd bdd add <id>` -- refused if feature has no seed.
+- `ptsd test map <id>` -- refused if feature has no BDD scenarios.
+- Creating tasks with `--stage impl` -- refused if feature has no tests.
+- Advancing to `implemented` -- refused unless all mapped tests pass.
+- `ptsd validate` -- errors on any pipeline violation. Blocks commit via git hook.
 
 ### Review Gate
 
@@ -66,9 +66,9 @@ After completing each pipeline stage, LLM runs the corresponding review skill. T
 
 ### Mandatory Progress Tracking
 
-LLM MUST record progress immediately as it happens — not at the end, not in batch, not "later". Every completed step, every review, every stage transition is recorded via `ptsd` commands the moment it occurs. This is non-negotiable.
+LLM MUST record progress immediately as it happens -- not at the end, not in batch, not "later". Every completed step, every review, every stage transition is recorded via `ptsd` commands the moment it occurs. This is non-negotiable.
 
-When `ptsd` is not yet available (bootstrapping phase), LLM records progress in `.ptsd/state.yaml` and `.ptsd/review-status.yaml` manually. Once `ptsd` is operational, ALL progress tracking goes exclusively through `ptsd` commands — no direct file edits for state.
+When `ptsd` is not yet available (bootstrapping phase), LLM records progress in `.ptsd/state.yaml` and `.ptsd/review-status.yaml` manually. Once `ptsd` is operational, ALL progress tracking goes exclusively through `ptsd` commands -- no direct file edits for state.
 
 Review status format defined in [Quality Scoring](#quality-scoring) section under feature `review`.
 
@@ -93,9 +93,9 @@ Features with status `planned` or `deferred` are excluded from pipeline checks.
 Concrete example data per feature. Lives in `.ptsd/seeds/<feature-id>/`.
 
 **Purpose:**
-- Ground BDD scenarios in reality — scenarios reference real data shapes.
-- Catch logical errors — user sees actual data, validates it makes sense.
-- Provide fixtures — tests CAN import seed data files.
+- Ground BDD scenarios in reality -- scenarios reference real data shapes.
+- Catch logical errors -- user sees actual data, validates it makes sense.
+- Provide fixtures -- tests CAN import seed data files.
 
 **Manifest format** (`.ptsd/seeds/<id>/seed.yaml`):
 ```yaml
@@ -124,7 +124,7 @@ Stored in `.ptsd/state.yaml` per feature per stage. Score history preserved.
 
 #### Review Status File
 
-`.ptsd/review-status.yaml` — per-feature review tracking. Always contains ALL registered features. Fields are deterministic, no free text. Managed by `ptsd review` command.
+`.ptsd/review-status.yaml` -- per-feature review tracking. Always contains ALL registered features. Fields are deterministic, no free text. Managed by `ptsd review` command.
 
 ```yaml
 features:
@@ -143,11 +143,11 @@ features:
 ```
 
 Fields:
-- `stage` — current pipeline stage: `prd` | `seed` | `bdd` | `tests` | `impl`
-- `tests` — test file status: `absent` | `written`
-- `review` — review verdict: `pending` | `passed` | `failed`
-- `issues` — count of open issues (0 = clean)
-- `issues_list` — string array, one short line per issue (only present when issues > 0; removed when all resolved)
+- `stage` -- current pipeline stage: `prd` | `seed` | `bdd` | `tests` | `impl`
+- `tests` -- test file status: `absent` | `written`
+- `review` -- review verdict: `pending` | `passed` | `failed`
+- `issues` -- count of open issues (0 = clean)
+- `issues_list` -- string array, one short line per issue (only present when issues > 0; removed when all resolved)
 
 **Automation:** `ptsd review <feature-id> --stage <stage>` updates review-status.yaml automatically. Sets verdict, records issues, manages issues_list.
 
@@ -196,6 +196,9 @@ Tests and implementation live where the project normally puts them (not inside `
 
 ## Commands
 
+<!-- feature:init -->
+<!-- feature:adopt -->
+
 ### Project Lifecycle
 
 **`ptsd init [--name N]`**
@@ -206,64 +209,76 @@ Scaffold `.ptsd/` directory with all subdirectories, config, empty registry, ski
 
 Scan existing project for artifacts (BDD files, tests, PRD). Extract feature IDs, create `.ptsd/` structure, import discovered artifacts, initialize state with current hashes.
 
+<!-- feature:feature-mgmt -->
+
 ### Feature Management
 
-**`ptsd feature add <id> [--title T] [--status S]`** — Register feature. Status defaults to `planned`.
+**`ptsd feature add <id> [--title T] [--status S]`** -- Register feature. Status defaults to `planned`.
 
-**`ptsd feature list [--status S]`** — List features with optional filter.
+**`ptsd feature list [--status S]`** -- List features with optional filter.
 
-**`ptsd feature show <id>`** — Full context: PRD section, seed status, BDD scenario count, test count, tasks, review scores.
+**`ptsd feature show <id>`** -- Full context: PRD section, seed status, BDD scenario count, test count, tasks, review scores.
 
-**`ptsd feature status <id> <new-status>`** — Update status. `implemented` requires all tests passing.
+**`ptsd feature status <id> <new-status>`** -- Update status. `implemented` requires all tests passing.
+
+<!-- feature:task-mgmt -->
 
 ### Task Management
 
-**`ptsd task add --feature <id> "title" [--status TODO|WIP] [--priority A|B|C]`** — Create task linked to feature. Priority: A=blocking, B=important, C=future.
+**`ptsd task add --feature <id> "title" [--status TODO|WIP] [--priority A|B|C]`** -- Create task linked to feature. Priority: A=blocking, B=important, C=future.
 
-**`ptsd task next [--limit N]`** — Next unblocked tasks. Agent mode output:
+**`ptsd task next [--limit N]`** -- Next unblocked tasks. Agent mode output:
 ```
 T-1 [TODO] [A] [PRD:l30-40 BDD:l30-100 TEST:l0-200]: Implement user auth
 T-2 [TODO] [B] [PRD:l50-60 BDD:l110-150]: Write catalog tests
 ```
 
-**`ptsd task list [--status S] [--feature F]`** — List tasks with filters.
+**`ptsd task list [--status S] [--feature F]`** -- List tasks with filters.
 
-**`ptsd task update <id> --status TODO|WIP|DONE`** — Update task status.
+**`ptsd task update <id> --status TODO|WIP|DONE`** -- Update task status.
+
+<!-- feature:prd-check -->
+<!-- feature:seed-mgmt -->
+<!-- feature:bdd-mgmt -->
+<!-- feature:test-integration -->
 
 ### Pipeline Steps
 
-**`ptsd prd check`** — Validate PRD anchors vs feature registry. Missing anchors = error.
+**`ptsd prd check`** -- Validate PRD anchors vs feature registry. Missing anchors = error.
 
-**`ptsd seed init <feature-id>`** — Create seed directory and manifest.
+**`ptsd seed init <feature-id>`** -- Create seed directory and manifest.
 
-**`ptsd seed add <feature-id> <file> [--type T]`** — Add file to seed manifest.
+**`ptsd seed add <feature-id> <file> [--type T]`** -- Add file to seed manifest.
 
-**`ptsd seed check`** — Validate all active features have seeds.
+**`ptsd seed check`** -- Validate all active features have seeds.
 
-**`ptsd bdd add <feature-id>`** — Create `.feature` file from template. Refuses without seed.
+**`ptsd bdd add <feature-id>`** -- Create `.feature` file from template. Refuses without seed.
 
-**`ptsd bdd check`** — Validate all feature tags exist in registry. Report uncovered features.
+**`ptsd bdd check`** -- Validate all feature tags exist in registry. Report uncovered features.
 
-**`ptsd bdd show <feature-id>`** — Compact scenarios, one line each: `Title: Given X / When Y / Then Z`.
+**`ptsd bdd show <feature-id>`** -- Compact scenarios, one line each: `Title: Given X / When Y / Then Z`.
 
-**`ptsd test map <bdd-file> <test-file>`** — Create explicit BDD-to-test mapping.
+**`ptsd test map <bdd-file> <test-file>`** -- Create explicit BDD-to-test mapping.
 
-**`ptsd test check`** — Show mapping coverage. Status per BDD file: covered, partial, no-tests.
+**`ptsd test check`** -- Show mapping coverage. Status per BDD file: covered, partial, no-tests.
 
-**`ptsd test run [--feature F]`** — Execute tests. Agent mode output: `pass:7 fail:2 fail:tests/foo.test.ts:42,tests/bar.test.ts:18`.
+**`ptsd test run [--feature F]`** -- Execute tests. Agent mode output: `pass:7 fail:2 fail:tests/foo.test.ts:42,tests/bar.test.ts:18`.
+
+<!-- feature:status -->
+<!-- feature:validate -->
 
 ### Status & Validation
 
-**`ptsd status`** — Project overview. Agent mode:
+**`ptsd status`** -- Project overview. Agent mode:
 ```
 [FEAT:5 FAIL:0] [BDD:5 FAIL:0] [TESTS:5 FAIL:0] [T:20 WIP:0 TODO:19 DONE:1]
 ```
 
-**`ptsd status --feature <id>`** — Per-feature gap analysis: scenario count vs test count, review scores, pipeline stage.
+**`ptsd status --feature <id>`** -- Per-feature gap analysis: scenario count vs test count, review scores, pipeline stage.
 
-**`ptsd validate`** — Full pipeline validation. Errors on violations. Used by git hook.
+**`ptsd validate`** -- Full pipeline validation. Errors on violations. Used by git hook.
 
-**`ptsd review <feature-id> --stage <stage>`** — Record review score for a feature at a stage. Stores in state.
+**`ptsd review <feature-id> --stage <stage>`** -- Record review score for a feature at a stage. Stores in state.
 
 ---
 
@@ -279,10 +294,10 @@ On every state-reading operation (`status`, `validate`, `task next`), ptsd compa
 
 | File Changed | Feature Stage | Action |
 |-------------|---------------|--------|
-| Seed | beyond seed | WARN — downstream may be stale |
-| BDD | beyond bdd | WARN — tests may be stale |
-| PRD section | beyond prd | ERROR — downgrade stage, create redo tasks |
-| Test file | implemented | WARN — re-run tests |
+| Seed | beyond seed | WARN -- downstream may be stale |
+| BDD | beyond bdd | WARN -- tests may be stale |
+| PRD section | beyond prd | ERROR -- downgrade stage, create redo tasks |
+| Test file | implemented | WARN -- re-run tests |
 
 When PRD changes for a feature with downstream artifacts:
 1. Feature stage downgraded.
@@ -311,7 +326,7 @@ features:
 
 <!-- feature:skills -->
 
-PTSD ships skills for every pipeline stage — both creation and review. Skills are structured instructions in a universal format understood by Claude Code, Cursor, OpenCode, and other AI tools.
+PTSD ships skills for every pipeline stage -- both creation and review. Skills are structured instructions in a universal format understood by Claude Code, Cursor, OpenCode, and other AI tools.
 
 ### Creation Skills
 
@@ -340,7 +355,7 @@ Guide the LLM through evaluating artifacts, output score 0-10:
 
 ### Workflow Skill
 
-`workflow.md` — Full pipeline, mandatory order, what to invoke when.
+`workflow.md` -- Full pipeline, mandatory order, what to invoke when.
 
 ### Skill Format
 
@@ -379,7 +394,7 @@ If it can be validated automatically, it MUST be:
 
 - Pre-commit hook runs `ptsd validate`. Violation = ERROR = commit blocked. No bypass flag.
 - `ptsd bdd add` refuses without seed. `ptsd test map` refuses without BDD.
-- Stage advancement requires passing review score (≥ threshold).
+- Stage advancement requires passing review score (>= threshold).
 - Review skills force LLM to list explicit issues (can't output empty review).
 - `ptsd validate` scans test files for mock/stub patterns and flags them.
 - No `--force`, `--skip-validation`, or `--no-verify` flags exist.
@@ -388,7 +403,7 @@ If it can be validated automatically, it MUST be:
 
 ## Git Integration
 
-<!-- feature:git-integration -->
+<!-- feature:git-hooks -->
 
 ### Hooks
 
@@ -425,10 +440,10 @@ Commit blocked on any pipeline violation. No bypass.
 
 ptsd knows which files belong to which stage by their paths. On commit:
 
-1. Reads `git diff --staged` — classifies each file by stage.
+1. Reads `git diff --staged` -- classifies each file by stage.
 2. Reads commit message scope `[SCOPE]`.
-3. If staged files don't match the declared scope — **ERROR, commit blocked**.
-4. If scope is missing — **ERROR, commit blocked**.
+3. If staged files don't match the declared scope -- **ERROR, commit blocked**.
+4. If scope is missing -- **ERROR, commit blocked**.
 5. Scope determines which pipeline checks to run (e.g. `[BDD]` skips test/impl validation).
 
 **Examples:**
@@ -479,9 +494,9 @@ hooks:
 
 ### Test Adapter Selection
 
-1. If `result_parser` present — use generic configurable adapter.
-2. If `runner` contains known keyword (vitest, jest, pytest, "go test") — use built-in preset.
-3. Otherwise — exit-code adapter (pass if exit 0).
+1. If `result_parser` present -- use generic configurable adapter.
+2. If `runner` contains known keyword (vitest, jest, pytest, "go test") -- use built-in preset.
+3. Otherwise -- exit-code adapter (pass if exit 0).
 
 ---
 
@@ -548,7 +563,7 @@ PTSD maintains a per-project **common issues** file at `.ptsd/issues.yaml`. This
 
 ### Purpose
 
-LLMs lose context between sessions. The same mistakes repeat: wrong venv, missing keys, reading stale files, misconfigured tools. Common issues file breaks this cycle — LLM reads it at session start and avoids known traps.
+LLMs lose context between sessions. The same mistakes repeat: wrong venv, missing keys, reading stale files, misconfigured tools. Common issues file breaks this cycle -- LLM reads it at session start and avoids known traps.
 
 ### Format
 
@@ -569,14 +584,14 @@ issues:
 ```
 
 Fields:
-- `id` — slug, unique per issue
-- `category` — `env` | `access` | `io` | `config` | `test` | `llm`
-- `summary` — one line, max 80 chars
-- `fix` — one line, concrete action
+- `id` -- slug, unique per issue
+- `category` -- `env` | `access` | `io` | `config` | `test` | `llm`
+- `summary` -- one line, max 80 chars
+- `fix` -- one line, concrete action
 
 ### Rules
 
-1. **LLM MUST read `.ptsd/issues.yaml` at session start** — before any work.
+1. **LLM MUST read `.ptsd/issues.yaml` at session start** -- before any work.
 2. **Add issue immediately** when a problem occurs for the second time.
 3. **Remove issue** when root cause is permanently fixed (not just worked around).
 4. **No duplicates.** Check existing issues before adding.
@@ -584,11 +599,11 @@ Fields:
 
 ### Commands
 
-**`ptsd issues list [--category C]`** — List all issues, optionally filtered.
+**`ptsd issues list [--category C]`** -- List all issues, optionally filtered.
 
-**`ptsd issues add --category C "summary" --fix "fix"`** — Add new issue.
+**`ptsd issues add --category C "summary" --fix "fix"`** -- Add new issue.
 
-**`ptsd issues remove <id>`** — Remove resolved issue.
+**`ptsd issues remove <id>`** -- Remove resolved issue.
 
 ### Categories
 
@@ -608,33 +623,33 @@ Fields:
 Go module. Single binary. Three-layer structure:
 
 ```
-cmd/ptsd/main.go          → entry point, arg routing
+cmd/ptsd/main.go          -> entry point, arg routing
 internal/
-  cli/                    → command handlers (thin: parse args → call core → render)
+  cli/                    -> command handlers (thin: parse args -> call core -> render)
     init.go
     feature.go
     task.go
     status.go
     validate.go
     ...
-  core/                   → domain logic (testable, no TUI deps)
-    config.go             → load/merge ptsd.yaml
-    registry.go           → feature CRUD on features.yaml
-    pipeline.go           → stage gates, transitions, validation
-    state.go              → state.yaml, hashes, scores
-    tasks.go              → task CRUD on tasks.yaml
-    prd.go                → PRD anchor extraction
-    bdd.go                → .feature file parsing
-    testrunner.go         → execute configured runner, parse results
-    seed.go               → seed management
-    review.go             → score storage and threshold checks
-    hooks.go              → pre-commit hook generation and validation
-    classify.go           → file path → pipeline stage classification
-  render/                 → Bubbletea output layer
-    agent.go              → compact text renderer (--agent mode)
-    tui.go                → interactive TUI renderer
-    models.go             → shared view models
-  yaml/                   → hand-rolled YAML parser (no deps)
+  core/                   -> domain logic (testable, no TUI deps)
+    config.go             -> load/merge ptsd.yaml
+    registry.go           -> feature CRUD on features.yaml
+    pipeline.go           -> stage gates, transitions, validation
+    state.go              -> state.yaml, hashes, scores
+    tasks.go              -> task CRUD on tasks.yaml
+    prd.go                -> PRD anchor extraction
+    bdd.go                -> .feature file parsing
+    testrunner.go         -> execute configured runner, parse results
+    seed.go               -> seed management
+    review.go             -> score storage and threshold checks
+    hooks.go              -> pre-commit hook generation and validation
+    classify.go           -> file path -> pipeline stage classification
+  render/                 -> Bubbletea output layer
+    agent.go              -> compact text renderer (--agent mode)
+    tui.go                -> interactive TUI renderer
+    models.go             -> shared view models
+  yaml/                   -> hand-rolled YAML parser (no deps)
     parse.go
     serialize.go
 ```
@@ -642,8 +657,8 @@ internal/
 ### Dependency Flow
 
 ```
-cmd/ptsd → cli/* → core/* → yaml/*
-                 → render/*
+cmd/ptsd -> cli/* -> core/* -> yaml/*
+                 -> render/*
 ```
 
 - `core/` has zero TUI imports. Pure domain logic.
@@ -654,7 +669,7 @@ cmd/ptsd → cli/* → core/* → yaml/*
 ### Key Interfaces
 
 ```go
-// Renderer — cli/ calls this, doesn't know if TUI or agent
+// Renderer -- cli/ calls this, doesn't know if TUI or agent
 type Renderer interface {
     Status(data StatusData)
     TaskList(tasks []Task)
@@ -662,7 +677,7 @@ type Renderer interface {
     // ...
 }
 
-// TestRunner — core/ calls configured runner
+// TestRunner -- core/ calls configured runner
 type TestRunner interface {
     Run(patterns []string) (TestResults, error)
 }

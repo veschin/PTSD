@@ -50,6 +50,24 @@ Do NOT skip the `ptsd review` step. It records review verdicts. Without it the f
 - No impl without passing test review
 - No stage advance without review score >= min_score (default 7)
 
+### Existing project (after ptsd adopt)
+
+If you joined a project that was bootstrapped with `ptsd adopt`:
+
+1. Run `ptsd context --agent` -- see which features exist and their stages.
+2. Check for unmapped tests: `ptsd status --agent` -- if TESTS:0 but test files exist, they need mapping.
+3. Check for missing PRDs: features without `<!-- feature:<id> -->` anchors in PRD.md will be blocked.
+4. For features with passing tests but no BDD: set pipeline to `lite` with `ptsd feature pipeline <id> lite`.
+5. For features that need better test coverage: keep `standard` pipeline, write BDD scenarios first.
+
+### Multiple blocked features
+
+When `ptsd context --agent` shows several features blocked:
+
+1. Start with features that have no dependencies on other features.
+2. If features share state (e.g., shared storage format), design the data model in the first feature's seed/BDD, then reference it in dependent features.
+3. Complete one feature fully before starting the next -- avoid spreading work across many features at once.
+
 ## Common Mistakes
 
 - Starting implementation without checking review-status.yaml first.

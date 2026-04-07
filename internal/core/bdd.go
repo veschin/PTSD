@@ -34,6 +34,9 @@ func AddBDD(projectDir string, featureID string) error {
 	}
 
 	bddPath := filepath.Join(bddDir, featureID+".feature")
+	if _, err := os.Stat(bddPath); err == nil {
+		return fmt.Errorf("err:validation BDD already exists for %s", featureID)
+	}
 	content := "@feature:" + featureID + "\nFeature: " + featureID + "\n"
 	if err := os.WriteFile(bddPath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("err:io %w", err)
