@@ -306,6 +306,85 @@ next: config stage=prd action=write-tests pipeline=lite</pre>
     </div>
   </section>
 
+  <!-- BENCHMARK -->
+  <section id="benchmark" class="alt-bg">
+    <div class="wrap">
+      <h2 class="sec-title">Benchmark</h2>
+      <p class="sec-sub">Same project, same spec. 8 runs across two models. Blind evaluation.</p>
+
+      <p class="bench-method">2×2 within-model comparison: Sonnet and <a href="https://github.com/veschin/GoLeM" target="_blank" rel="noopener">GLM-5 via GoLeM</a>, with and without PTSD. N=2 per cell. Identical PRD (intentionally vague -- no exact output strings). Blind evaluation by Opus on anonymized directories. 9 criteria, 0-3 each.</p>
+
+      <table class="bench-table">
+        <thead><tr><th>Model</th><th>Condition</th><th>Avg Score</th><th>Tests</th><th>Test Files</th><th>Commits</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="bn-model">Sonnet</td>
+            <td class="bn-bare">bare</td>
+            <td>25.0/27</td>
+            <td>22</td>
+            <td>1</td>
+            <td>0-1</td>
+          </tr>
+          <tr>
+            <td class="bn-model">Sonnet</td>
+            <td class="bn-ptsd">PTSD</td>
+            <td>24.5/27</td>
+            <td>26</td>
+            <td>5</td>
+            <td>4-8</td>
+          </tr>
+          <tr>
+            <td class="bn-model">GLM-5</td>
+            <td class="bn-bare">bare</td>
+            <td>20.5/27</td>
+            <td>9</td>
+            <td>1</td>
+            <td>1</td>
+          </tr>
+          <tr>
+            <td class="bn-model">GLM-5</td>
+            <td class="bn-ptsd">PTSD</td>
+            <td>20.0/27</td>
+            <td>24</td>
+            <td>5</td>
+            <td>8-13</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 class="bench-insight-title">What PTSD Actually Builds</h3>
+
+      <div class="bench-grid">
+        <div class="bench-card reveal">
+          <h4>After bare run</h4>
+          <ul class="bench-list">
+            <li class="bl-yes">Working code</li>
+            <li class="bl-yes">Passing tests</li>
+            <li class="bl-no">Feature registry</li>
+            <li class="bl-no">BDD scenarios</li>
+            <li class="bl-no">Test-to-feature mapping</li>
+            <li class="bl-no">Review history</li>
+            <li class="bl-no">Stage-separated commits</li>
+          </ul>
+        </div>
+        <div class="bench-card bench-card-ptsd reveal">
+          <h4>After PTSD run</h4>
+          <ul class="bench-list">
+            <li class="bl-yes">Working code</li>
+            <li class="bl-yes">Passing tests</li>
+            <li class="bl-yes bl-desc">Feature registry <span>-- IDs, status, pipeline stage</span></li>
+            <li class="bl-yes bl-desc">BDD scenarios <span>-- Gherkin specs per feature</span></li>
+            <li class="bl-yes bl-desc">Test-to-feature mapping <span>-- each test mapped via BDD</span></li>
+            <li class="bl-yes bl-desc">Review history <span>-- what was reviewed, when, score</span></li>
+            <li class="bl-yes bl-desc">Stage-separated commits <span>-- [SCOPE] format, per-stage</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="bench-note"><em>PTSD doesn't make the first implementation better -- it makes the project developable. Full methodology and per-run data: <a href="https://github.com/veschin/ptsd/blob/main/FEEDBACK.md" target="_blank" rel="noopener">FEEDBACK.md</a></em></p>
+    </div>
+  </section>
+
   <!-- GETTING STARTED -->
   <section id="start">
     <div class="wrap">
