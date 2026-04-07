@@ -233,8 +233,8 @@ func applyAdopt(dir string, result *AdoptResult) (*AdoptWarnings, error) {
 		return nil, fmt.Errorf("err:io %w", err)
 	}
 
-	// Create features.yaml -- BDD-discovered features are in-progress,
-	// Go-discovered features are grandfathered as implemented+lite
+	// Create features.yaml -- BDD-discovered features are in-progress.
+	// Existing test files are context, not features -- users register their own.
 	var b strings.Builder
 	b.WriteString("features:\n")
 	for _, id := range result.BDDFiles {
@@ -242,12 +242,6 @@ func applyAdopt(dir string, result *AdoptResult) (*AdoptWarnings, error) {
 		b.WriteString("    title: " + id + "\n")
 		b.WriteString("    status: in-progress\n")
 		b.WriteString("    pipeline: standard\n")
-	}
-	for _, id := range result.GoPackages {
-		b.WriteString("  - id: " + id + "\n")
-		b.WriteString("    title: " + id + "\n")
-		b.WriteString("    status: deferred\n")
-		b.WriteString("    pipeline: lite\n")
 	}
 	if err := os.WriteFile(filepath.Join(ptsdDir, "features.yaml"), []byte(b.String()), 0644); err != nil {
 		return nil, fmt.Errorf("err:io %w", err)

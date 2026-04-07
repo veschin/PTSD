@@ -68,16 +68,13 @@ func RunAdopt(args []string, agentMode bool) int {
 			return coreError(agentMode, err)
 		}
 		if agentMode {
-			fmt.Printf("dry-run:ok bdd:%d tests:%d total-source:%d go:%d features:%s\n",
-				len(result.BDDFiles), len(result.TestFiles), result.TotalScanned, len(result.GoPackages), result.FeaturesFile)
+			fmt.Printf("dry-run:ok bdd:%d tests:%d total-source:%d features:%s\n",
+				len(result.BDDFiles), len(result.TestFiles), result.TotalScanned, result.FeaturesFile)
 		} else {
 			fmt.Printf("Dry run -- would create: %s\n", result.FeaturesFile)
 			fmt.Printf("BDD features found: %d\n", len(result.BDDFiles))
 			fmt.Printf("Test files found: %d\n", len(result.TestFiles))
 			fmt.Printf("Total source files scanned: %d\n", result.TotalScanned)
-			if len(result.GoPackages) > 0 {
-				fmt.Printf("Test features found: %d (added as deferred)\n", len(result.GoPackages))
-			}
 		}
 		return 0
 	}

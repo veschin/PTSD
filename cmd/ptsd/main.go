@@ -70,6 +70,8 @@ func main() {
 		exitCode = cli.RunGateCheck(subargs, agentMode)
 	case "auto-track":
 		exitCode = cli.RunAutoTrack(subargs, agentMode)
+	case "map":
+		exitCode = cli.RunMap(subargs, agentMode)
 	case "migrate":
 		exitCode = cli.RunMigrate(subargs, agentMode)
 	case "completion":

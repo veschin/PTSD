@@ -49,6 +49,23 @@ func BuildContext(projectDir string) (ContextResult, error) {
 
 	var result ContextResult
 
+	// Check if there are any active features
+	hasActive := false
+	for _, f := range features {
+		if f.Status != "planned" && f.Status != "deferred" {
+			hasActive = true
+			break
+		}
+	}
+	if !hasActive {
+		result.Lines = append(result.Lines, ContextLine{
+			Type:   ContextNext,
+			Action: "add-feature",
+			Reason: "no active features -- add with: ptsd feature add <id> \"title\"",
+		})
+		// Still emit tasks below
+	}
+
 	for _, f := range features {
 		if f.Status == "planned" || f.Status == "deferred" {
 			continue
